@@ -1,8 +1,21 @@
 package de.tuberlin.mcc.simra.app.entities;
 
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+//TODO: Think about full-text search or indexes
+@Entity(tableName = "data_log_table")
 public class DataLogEntry {
-    private static final String TAG = "DataLogEntry_LOG:";
+    //private static final String TAG = "DataLogEntry_LOG:";
+
+    @PrimaryKey(autoGenerate = true)
+    public Integer id;
+
+    @NonNull
     public final Integer rideId;
+    //TODO: Find out which of the columns should be NonNull or final?
     public final Double latitude;
     public final Double longitude;
     public final Float accelerometerX;
@@ -25,6 +38,33 @@ public class DataLogEntry {
     public final Float rotationY;
     public final Float rotationZ;
     public final Float rotationC;
+
+    // Apparently required for Entity classes
+    public DataLogEntry(@NonNull Integer rideId, Double latitude, Double longitude, Float accelerometerX, Float accelerometerY, Float accelerometerZ, Long timestamp, Float GPSAccuracy, Float gyroscopeA, Float gyroscopeB, Float gyroscopeC, Integer obsDistanceLeft1, Integer obsDistanceLeft2, Integer obsDistanceRight1, Integer obsDistanceRight2, Integer obsClosePassEvent, Float linearAccelerometerX, Float linearAccelerometerY, Float linearAccelerometerZ, Float rotationX, Float rotationY, Float rotationZ, Float rotationC) {
+        this.rideId = rideId;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.accelerometerX = accelerometerX;
+        this.accelerometerY = accelerometerY;
+        this.accelerometerZ = accelerometerZ;
+        this.timestamp = timestamp;
+        this.GPSAccuracy = GPSAccuracy;
+        this.gyroscopeA = gyroscopeA;
+        this.gyroscopeB = gyroscopeB;
+        this.gyroscopeC = gyroscopeC;
+        this.obsDistanceLeft1 = obsDistanceLeft1;
+        this.obsDistanceLeft2 = obsDistanceLeft2;
+        this.obsDistanceRight1 = obsDistanceRight1;
+        this.obsDistanceRight2 = obsDistanceRight2;
+        this.obsClosePassEvent = obsClosePassEvent;
+        this.linearAccelerometerX = linearAccelerometerX;
+        this.linearAccelerometerY = linearAccelerometerY;
+        this.linearAccelerometerZ = linearAccelerometerZ;
+        this.rotationX = rotationX;
+        this.rotationY = rotationY;
+        this.rotationZ = rotationZ;
+        this.rotationC = rotationC;
+    }
 
     private DataLogEntry(DataLogEntryBuilder dataLogEntryBuilder) {
         this.rideId = dataLogEntryBuilder.rideId;
@@ -52,6 +92,7 @@ public class DataLogEntry {
         this.rotationC = dataLogEntryBuilder.rotationC;
     }
 
+    /*
     public static DataLogEntry parseDataLogEntryFromLine(String string) {
         String[] dataLogLine = string.split(",", -1);
         DataLogEntryBuilder dataLogEntryBuilder = DataLogEntry.newBuilder();
@@ -111,12 +152,13 @@ public class DataLogEntry {
             );
         }
         return dataLogEntryBuilder.build();
-    }
+    } */
 
     public static DataLogEntryBuilder newBuilder() {
         return new DataLogEntryBuilder();
     }
 
+    //This is still needed for the upload-task
     /**
      * Stringifies the DataLogEntry Object to a CSV Log Line
      *

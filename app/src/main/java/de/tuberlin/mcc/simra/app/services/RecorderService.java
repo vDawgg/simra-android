@@ -27,22 +27,23 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.TreeMap;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.DataLogDao;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.util.ConnectionManager;
 import de.tuberlin.mcc.simra.app.util.Constants;
 import de.tuberlin.mcc.simra.app.util.ForegroundServiceNotificationManager;
-import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.IncidentBroadcaster;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.UnitHelper;
@@ -52,8 +53,7 @@ import de.tuberlin.mcc.simra.app.util.ble.ConnectionEventListener;
 import static de.tuberlin.mcc.simra.app.services.OBSService.ACTION_VALUE_RECEIVED_DISTANCE;
 import static de.tuberlin.mcc.simra.app.services.OBSService.EXTRA_VALUE_SERIALIZED;*/
 import static de.tuberlin.mcc.simra.app.util.SharedPref.lookUpIntSharedPrefs;
-import static de.tuberlin.mcc.simra.app.util.Utils.mergeGPSandSensorLines;
-import static de.tuberlin.mcc.simra.app.util.Utils.overwriteFile;
+import static de.tuberlin.mcc.simra.app.util.Utils.mergeGPSAndSensor;
 
 public class RecorderService extends Service implements SensorEventListener, LocationListener {
     public static final String TAG = "RecorderService_LOG:";
@@ -354,8 +354,25 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             recordingHandler.removeCallbacksAndMessages(null);
             int region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
             addOBSIncidents(obsMeasurements, incidentLog, gpsLines, this);
-            accGpsString = mergeGPSandSensorLines(gpsLines,sensorLines);
-            overwriteFile((IOUtils.Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator() + accGpsString), IOUtils.Files.getGPSLogFile(key, false, this));
+
+            //TODO: Change the wording as it does not make much sense for the db (e.g. 'lines'->'rows')
+            //accGpsString = mergeGPSandSensorLines(gpsLines,sensorLines);
+            List<DataLogEntry> acc = mergeGPSAndSensor(gpsLines, sensorLines);
+            Log.d("DEBUG", acc.toString());
+
+            //TODO: Try to improve this if possible as this write currently takes 1027ms compared to
+            // the old csv implementation which took 12 ms!
+            long start = System.currentTimeMillis();
+            //TODO: Give views a try!
+            //overwriteFile((IOUtils.Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator() + accGpsString), IOUtils.Files.getGPSLogFile(key, false, this));
+            SimRaDB db = SimRaDB.getDataBase(this);
+            DataLogDao dataLogDao = db.getDataLogDao();
+            //TODO: Find a way of doing this without using a blockingAwait() calls as the insert
+            // then runs on the main thread
+            dataLogDao.insertDataLogEntries(acc).blockingAwait();
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
+
             MetaData.updateOrAddMetaDataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
             IncidentLog.saveIncidentLog(incidentLog, this);
             editor.putInt("RIDE-KEY", key + 1);
@@ -487,6 +504,8 @@ public class RecorderService extends Service implements SensorEventListener, Loc
              /**/
             /**/if (accelerometerQueueX.size() >= 30 && linearAccelerometerQueueX.size() >= 30 && rotationQueueX.size() >= 30) {
                 DataLogEntry.DataLogEntryBuilder dataLogEntryBuilder = DataLogEntry.newBuilder();
+                //TODO: Check if the correct key is inserted!
+                dataLogEntryBuilder.withRideId(key);
                 long lastAccUpdate = System.currentTimeMillis();
                 dataLogEntryBuilder.withTimestamp(lastAccUpdate);
                 dataLogEntryBuilder.withAccelerometer(

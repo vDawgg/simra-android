@@ -2,7 +2,6 @@ package de.tuberlin.mcc.simra.app.util;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.location.LocationManager;
 import android.util.Log;
@@ -15,15 +14,12 @@ import org.osmdroid.util.GeoPoint;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,8 +38,10 @@ import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.Profile;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
 import static de.tuberlin.mcc.simra.app.activities.ProfileActivity.startProfileActivityForChooseRegion;
+import static de.tuberlin.mcc.simra.app.entities.DataLog.DATA_LOG_HEADER;
 import static de.tuberlin.mcc.simra.app.entities.IncidentLog.getEventsFile;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getSharedPrefsDirectory;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.zip;
@@ -84,6 +82,7 @@ public class Utils {
      * @param context
      * @return The ride to upload and the filtered incident log to overwrite after successful upload
      */
+    //TODO: Check this!
     public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
 
         StringBuilder content = new StringBuilder();
@@ -102,6 +101,8 @@ public class Utils {
         }
 
         IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLogFromFileOnly(rideId, context),null,null,null,null,true);
+
+        //TODO: Think about changing this as it seems to be a pretty inefficient way to do things
         String dataLog = DataLog.loadDataLog(rideId, context).toString();
 
         // content.append(incidentLog.toString());
@@ -185,6 +186,7 @@ public class Utils {
     /*
      * Uses sophisticated AI to analyze the ride
      * */
+    //TODO: Change this!
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline(int rideId, int bike, int pLoc, Context context) {
         try {
             String responseString = "";
@@ -489,6 +491,24 @@ public class Utils {
 
     }
 
+    public static List<DataLogEntry> mergeGPSAndSensor(Queue<DataLogEntry> gpsLines, Queue<DataLogEntry> sensorLines) {
+        List<DataLogEntry> dataLogEntries = new ArrayList<>();
+
+        while(!gpsLines.isEmpty() || !sensorLines.isEmpty()) {
+            DataLogEntry gpsLine = gpsLines.peek();
+            DataLogEntry sensorLine = sensorLines.peek();
+            long gpsTS = gpsLine != null ? gpsLine.timestamp : Long.MAX_VALUE;
+            long sensorTS = sensorLine != null ? sensorLine.timestamp : Long.MAX_VALUE;
+            if (gpsTS <= sensorTS) {
+                dataLogEntries.add(gpsLines.poll());
+            } else {
+                dataLogEntries.add(sensorLines.poll());
+            }
+        }
+
+        return dataLogEntries;
+    }
+/*
     public static String mergeGPSandSensorLines(Queue<DataLogEntry> gpsLines, Queue<DataLogEntry> sensorLines) {
         StringBuilder accGpsString = new StringBuilder();
 
@@ -506,7 +526,7 @@ public class Utils {
 
         return accGpsString.toString();
     }
-
+*/
     /**
      * calculates the nearest three regions to given location
      * @param lat Latitude of current location

@@ -3,6 +3,11 @@ package de.tuberlin.mcc.simra.app.entities;
 import android.content.Context;
 import android.location.Location;
 
+import androidx.room.Dao;
+import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
+import androidx.room.Query;
+
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
 
@@ -15,10 +20,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.tuberlin.mcc.simra.app.database.DataLogDao;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.Utils;
+import io.reactivex.Completable;
 
 public class DataLog {
+
     public final static String DATA_LOG_HEADER = "lat,lon,X,Y,Z,timeStamp,acc,a,b,c,obsDistanceLeft1,obsDistanceLeft2,obsDistanceRight1,obsDistanceRight2,obsClosePassEvent,XL,YL,ZL,RX,RY,RZ,RC";
     public final int rideId;
     public final List<DataLogEntry> dataLogEntries;
@@ -41,9 +50,10 @@ public class DataLog {
     }
 
     public static DataLog loadDataLog(int rideId, Context context) {
-        return loadDataLog(rideId, null, null, context);
+        return loadDataLogFromDB(rideId, null, null, context);
     }
 
+    /*
     public static DataLog loadDataLog(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
@@ -77,6 +87,36 @@ public class DataLog {
         }
         RideAnalysisData rideAnalysisData = null;
         rideAnalysisData = RideAnalysisData.calculateRideAnalysisData(onlyGPSDataLogEntries);
+        return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
+    }*/
+
+    public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
+        List<DataLogEntry> dataPoints = new ArrayList<>();
+        List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
+        long startTime = 0;
+        long endTime = 0;
+
+        SimRaDB db = SimRaDB.getDataBase(context);
+        DataLogDao dao = db.getDataLogDao();
+
+        DataLogEntry[] entries = dao.loadAllEntriesOfRide(rideId);
+
+        if (entries.length > 0) {
+            for (DataLogEntry entry : entries) {
+                if (Utils.isInTimeFrame(startTimeBoundary, endTimeBoundary, entry.timestamp)) {
+                    dataPoints.add(entry);
+                    if (entry.longitude != null && entry.latitude != null) {
+                        onlyGPSDataLogEntries.add(entry);
+                    }
+                }
+            }
+            startTime = dataPoints.get(0).timestamp;
+            endTime = dataPoints.get(dataPoints.size() - 1).timestamp;
+        }
+
+        RideAnalysisData rideAnalysisData = RideAnalysisData.
+                calculateRideAnalysisData(onlyGPSDataLogEntries);
+
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
