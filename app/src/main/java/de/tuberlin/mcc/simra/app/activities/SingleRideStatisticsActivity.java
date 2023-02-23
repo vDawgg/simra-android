@@ -14,11 +14,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.MetaDataDao;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivitySingleRideStatisticsBinding;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 
-import static de.tuberlin.mcc.simra.app.entities.MetaData.getMetaDataEntryForRide;
 import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
 
 public class SingleRideStatisticsActivity extends AppCompatActivity {
@@ -64,7 +65,11 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
         }
         rideId = getIntent().getIntExtra(EXTRA_RIDE_ID, 0);
 
-        MetaDataEntry metaDataEntry = getMetaDataEntryForRide(rideId, SingleRideStatisticsActivity.this);
+        //TODO: Test this!
+        //MetaDataEntry metaDataEntry = getMetaDataEntryForRide(rideId, SingleRideStatisticsActivity.this);
+        SimRaDB db = SimRaDB.getDataBase(this);
+        MetaDataDao metaDataDao = db.getMetaDataDao();
+        MetaDataEntry metaDataEntry = metaDataDao.getMetadataEntryForRide(rideId);
 
         int distanceDivider = 0;
         String distanceUnit = "";

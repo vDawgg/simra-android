@@ -15,6 +15,10 @@ import java.util.Map;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.Utils;
 
+
+//TODO: Remove this whole class as it should not be needed anymore
+// This might also apply to DataLog though the logic in that class
+// is not as easily replaceable
 /**
  * //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * // META-FILE (one per user): contains ...
@@ -32,6 +36,7 @@ public class MetaData {
         this.metaDataEntries = metaDataEntries;
     }
 
+    /*
     public static void saveMetaData(MetaData metaData, Context context) {
         StringBuilder metaDataString = new StringBuilder();
         Iterator<Map.Entry<Integer, MetaDataEntry>> iterator = metaData.metaDataEntries.entrySet().iterator();
@@ -41,8 +46,9 @@ public class MetaData {
         }
         File newFile = IOUtils.Files.getMetaDataFile(context);
         Utils.overwriteFile(IOUtils.Files.getFileInfoLine() + METADATA_HEADER + System.lineSeparator() + metaDataString, newFile);
-    }
+    }*/
 
+    /*
     public static MetaData loadMetaData(Context context) {
         File metaDataFile = IOUtils.Files.getMetaDataFile(context);
         Map<Integer, MetaDataEntry> metaDataEntries = new HashMap() {};
@@ -63,8 +69,9 @@ public class MetaData {
             }
         }
         return new MetaData(metaDataEntries);
-    }
+    }*/
 
+    /*
     public static MetaDataEntry getMetaDataEntryForRide(Integer rideId, Context context) {
         File metaDataFile = IOUtils.Files.getMetaDataFile(context);
         if (metaDataFile.exists()) {
@@ -108,8 +115,9 @@ public class MetaData {
             metaDataEntries.add(entry.getValue());
         }
         return metaDataEntries;
-    }
+    }*/
 
+    //TODO: Check if this should really be here and not in MetaDataEntry
     public static class STATE {
         /**
          * The ride is saved locally and was not yet annotated

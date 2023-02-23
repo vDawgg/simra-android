@@ -34,6 +34,7 @@ import java.util.TreeMap;
 
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.database.DataLogDao;
+import de.tuberlin.mcc.simra.app.database.MetaDataDao;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
@@ -373,7 +374,11 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             long end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
 
-            MetaData.updateOrAddMetaDataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
+            //MetaData.updateOrAddMetaDataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
+            MetaDataDao metaDataDao = db.getMetaDataDao();
+            metaDataDao.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region))
+                    .blockingAwait();
+
             IncidentLog.saveIncidentLog(incidentLog, this);
             editor.putInt("RIDE-KEY", key + 1);
             editor.apply();
@@ -501,8 +506,8 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                 rotationQueueZ.add(rotationMatrix[2]);
                 rotationQueueC.add(rotationMatrix[3]);
             }
-             /**/
-            /**/if (accelerometerQueueX.size() >= 30 && linearAccelerometerQueueX.size() >= 30 && rotationQueueX.size() >= 30) {
+
+            if (accelerometerQueueX.size() >= 30 && linearAccelerometerQueueX.size() >= 30 && rotationQueueX.size() >= 30) {
                 DataLogEntry.DataLogEntryBuilder dataLogEntryBuilder = DataLogEntry.newBuilder();
                 //TODO: Check if the correct key is inserted!
                 dataLogEntryBuilder.withRideId(key);
@@ -580,6 +585,7 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                     dataLogEntryBuilder.withOBS(lastOBSDistanceValue.leftSensorValues.get(0), null, null, null, null);
                 }*/
 
+                //What happens when no gps-line has been written? -> Why is lineAdded set to true?
                 if(isGPSLine) {
                     gpsLines.add(dataLogEntryBuilder.build());
                 } else if(!gpsLines.isEmpty()) {

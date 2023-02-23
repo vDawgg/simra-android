@@ -30,6 +30,8 @@ import javax.net.ssl.HttpsURLConnection;
 
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.MetaDataDao;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
@@ -206,7 +208,12 @@ public class UploadService extends Service {
                     regionProfilesList.add(Profile.loadProfile(i, context));
                 }
 
-                List<MetaDataEntry> metaDataEntries = MetaData.getMetaDataEntries(context);
+                //TODO: Test this!
+                //List<MetaDataEntry> metaDataEntries = MetaData.getMetaDataEntries(context);
+                SimRaDB db = SimRaDB.getDataBase(UploadService.this);
+                MetaDataDao metaDataDao = db.getMetaDataDao();
+                MetaDataEntry[] metaDataEntries = metaDataDao.getMetaDataEntries();
+
                 for (MetaDataEntry metaDataEntry : metaDataEntries) {
                     // found a ride which is ready to upload in metaData.csv
                     if (metaDataEntry.state.equals(MetaData.STATE.ANNOTATED)) {
@@ -244,9 +251,13 @@ public class UploadService extends Service {
                         // if the respond is ok, mark ride as uploaded in metaData.csv
                         if (response.first.equals(200)) {
                             metaDataEntry.state = MetaData.STATE.SYNCED;
-                            MetaData.updateOrAddMetaDataEntryForRide(metaDataEntry, context);
 
+                            //TODO: Test this!
+                            //MetaData.updateOrAddMetaDataEntryForRide(metaDataEntry, context);
+                            metaDataDao.updateOrAddMetadataEntryForRide(metaDataEntry);
 
+                            //Are the metadataEntries updated automatically? Otherwise this does not
+                            //make much sense
                             globalProfile = updateProfileFromMetaData(globalProfile, metaDataEntry);
                             regionProfile = updateProfileFromMetaData(regionProfile, metaDataEntry);
 

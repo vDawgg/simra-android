@@ -49,6 +49,7 @@ import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.annotation.IncidentPopUpActivity;
 import de.tuberlin.mcc.simra.app.annotation.MarkerFunct;
 import de.tuberlin.mcc.simra.app.database.DataLogDao;
+import de.tuberlin.mcc.simra.app.database.MetaDataDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityShowRouteBinding;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
@@ -397,7 +398,13 @@ public class ShowRouteActivity extends BaseActivity {
         // Save new Route
         DataLog.saveDataLog(dataLog, this);
         // Update MetaData
-        MetaDataEntry metaDataEntry = MetaData.getMetaDataEntryForRide(rideId, this);
+
+        //TODO: Test this!
+        //MetaDataEntry metaDataEntry = MetaData.getMetaDataEntryForRide(rideId, this);
+        SimRaDB db = SimRaDB.getDataBase(this);
+        MetaDataDao metaDataDao = db.getMetaDataDao();
+        MetaDataEntry metaDataEntry = metaDataDao.getMetadataEntryForRide(rideId);
+
         metaDataEntry.startTime = dataLog.startTime;
         metaDataEntry.endTime = dataLog.endTime;
         metaDataEntry.distance = dataLog.rideAnalysisData.distance;
@@ -406,7 +413,10 @@ public class ShowRouteActivity extends BaseActivity {
         metaDataEntry.numberOfScaryIncidents = IncidentLog.getScaryIncidents(incidentLog).size();
         metaDataEntry.region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
         metaDataEntry.state = MetaData.STATE.ANNOTATED;
-        MetaData.updateOrAddMetaDataEntryForRide(metaDataEntry, this);
+
+        //TODO: Test this!
+        //MetaData.updateOrAddMetaDataEntryForRide(metaDataEntry, this);
+        metaDataDao.updateOrAddMetadataEntryForRide(metaDataEntry);
 
         Toast.makeText(this, getString(R.string.savedRide), Toast.LENGTH_SHORT).show();
         finish();

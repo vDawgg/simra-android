@@ -33,11 +33,15 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.MetaDataDao;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityHistoryBinding;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.entities.Profile;
 import de.tuberlin.mcc.simra.app.services.UploadService;
 import de.tuberlin.mcc.simra.app.util.BaseActivity;
@@ -112,6 +116,40 @@ public class HistoryActivity extends BaseActivity {
         });
     }
 
+    /**
+     *
+     */
+    //TODO: Test this!
+    private void refreshMyRides() {
+        SimRaDB simRaDB = SimRaDB.getDataBase(this);
+        MetaDataDao metaDataDao = simRaDB.getMetaDataDao();
+
+        MetaDataEntry[] metaDataEntries = metaDataDao.getMetadataEntriesSortedByKey();
+
+        if (metaDataEntries.length > 0) {
+            List<String> stringArrayList = new ArrayList<>();
+            for (int i = metaDataEntries.length-1; i >= 0; i--) {
+                stringArrayList.add(getRideString(metaDataEntries[i]));
+            }
+
+            List<String[]> metaDataLines = new ArrayList<>();
+            for (MetaDataEntry entry : metaDataEntries) {
+                metaDataLines.add(entry.metaDataEntryToArray());
+            }
+
+            //MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
+            MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
+            binding.listView.setAdapter(myAdapter);
+
+        } else {
+            Log.d(TAG, "Metadata table has no items");
+
+            Snackbar snackbar = Snackbar.make(findViewById(R.id.coordinator_layout), (getString(R.string.noHistory)), Snackbar.LENGTH_LONG);
+            snackbar.show();
+        }
+    }
+
+    /*
     private void refreshMyRides() {
         List<String[]> metaDataLines = new ArrayList<>();
 
@@ -154,7 +192,7 @@ public class HistoryActivity extends BaseActivity {
 
         }
 
-    }
+    } */
 
     @Override
     protected void onResume() {
@@ -172,6 +210,34 @@ public class HistoryActivity extends BaseActivity {
         this.unregisterReceiver(br);
     }
 
+    /**
+     * Create text representation via the metadata of a ride
+     *
+     * @param entry the metadata entry for the ride
+     * @return the string with ride-info
+     */
+    private String getRideString(MetaDataEntry entry) {
+        String todo = getString(R.string.newRideInHistoryActivity);
+
+        if (entry.state == 1) {
+            todo = getString(R.string.rideAnnotatedInHistoryActivity);
+        } else if (entry.state == 2) {
+            todo = getString(R.string.rideUploadedInHistoryActivity);
+        }
+
+        int minutes = Math.round(((entry.endTime - entry.startTime) / 1000 / 60));
+        Date dt = new Date(entry.startTime);
+        Calendar localCalendar = Calendar.getInstance(TimeZone.getDefault());
+        localCalendar.setTime(dt);
+        Locale locale = Resources.getSystem().getConfiguration().locale;
+
+        SimpleDateFormat wholeDateFormat = new SimpleDateFormat(getString(R.string.datetime_format), locale);
+        String datetime = wholeDateFormat.format(dt);
+
+        return "#" + entry.rideId + ";" + datetime + ";" + todo + ";" + minutes + ";" + entry.state + ";" + Objects.requireNonNullElse(entry.distance, 0);
+    }
+
+    /*
     private String listToTextShape(String[] item) {
         String todo = getString(R.string.newRideInHistoryActivity);
 
@@ -196,28 +262,33 @@ public class HistoryActivity extends BaseActivity {
         } else {
             return "#" + item[0] + ";" + datetime + ";" + todo + ";" + minutes + ";" + item[3] + ";" + 0;
         }
-    }
+    }*/
 
     public void fireDeletePrompt(int position, MyArrayAdapter arrayAdapter) {
         AlertDialog.Builder alert = new AlertDialog.Builder(HistoryActivity.this);
         alert.setTitle(getString(R.string.warning));
         alert.setMessage(getString(R.string.delete_file_warning));
         alert.setPositiveButton(R.string.delete_ride_approve, (dialog, id) -> {
-            File[] dirFiles = getFilesDir().listFiles();
-            Log.d(TAG, "btnDelete.onClick() dirFiles: " + Arrays.deepToString(dirFiles));
+            //File[] dirFiles = getFilesDir().listFiles();
+            //Log.d(TAG, "btnDelete.onClick() dirFiles: " + Arrays.deepToString(dirFiles));
             String clicked = (String) binding.listView.getItemAtPosition(position);
             Log.d(TAG, "btnDelete.onClick() clicked: " + clicked);
             clicked = clicked.replace("#", "").split(";")[0];
-            if (dirFiles.length != 0) {
+            /*if (dirFiles.length != 0) {
                 for (File actualFile : dirFiles) {
                     if (actualFile.getName().startsWith(clicked + "_") || actualFile.getName().startsWith("accEvents" + clicked)) {
 
-                        /* don't delete the following line! */
                         Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
                     }
                 }
-            }
-            MetaData.deleteMetaDataEntryForRide(Integer.parseInt(clicked), this);
+            }*/
+
+            //TODO: Test this!
+            //MetaData.deleteMetaDataEntryForRide(Integer.parseInt(clicked), this);
+            SimRaDB db = SimRaDB.getDataBase(this);
+            MetaDataDao metaDataDao = db.getMetaDataDao();
+            metaDataDao.deleteMetadataEntryForRide(Integer.parseInt(clicked));
+
             Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
             refreshMyRides();
         });
@@ -332,11 +403,17 @@ public class HistoryActivity extends BaseActivity {
             row.setOnClickListener(v -> {
                 // gets the files in the directory
                 // lists all the files into an array
-                File[] dirFiles = new File(IOUtils.Directories.getBaseFolderPath(context)).listFiles();
+                //File[] dirFiles = new File(IOUtils.Directories.getBaseFolderPath(context)).listFiles();
                 String clicked = (String) binding.listView.getItemAtPosition(position);
-                Log.d(TAG, "dirFiles.length: " + dirFiles.length + " clicked: " + clicked + " position: " + position);
-                clicked = clicked.replace("#", "").split(";")[0];
-                if (dirFiles.length != 0) {
+                //Log.d(TAG, "dirFiles.length: " + dirFiles.length + " clicked: " + clicked + " position: " + position);
+                Integer rideID = Integer.parseInt(clicked.replace("#", "").split(";")[0]);
+
+                SimRaDB db = SimRaDB.getDataBase(HistoryActivity.this);
+                MetaDataDao dao = db.getMetaDataDao();
+                MetaDataEntry entry = dao.getMetadataEntryForRide(rideID);
+                ShowRouteActivity.startShowRouteActivity(rideID, entry.state, true, HistoryActivity.this);
+
+                /*if (dirFiles.length != 0) {
                     // loops through the array of files, outputting the name to console
                     for (File dirFile : dirFiles) {
                         String fileOutput = dirFile.getName();
@@ -345,7 +422,7 @@ public class HistoryActivity extends BaseActivity {
                             ShowRouteActivity.startShowRouteActivity(Integer.parseInt(fileOutput.split("_", -1)[0]), Integer.parseInt(metaDataLines.get(metaDataLines.size() - position - 1)[3]), true, HistoryActivity.this);
                         }
                     }
-                }
+                }*/
             });
 
             holder.btnDelete.setOnClickListener(v -> {

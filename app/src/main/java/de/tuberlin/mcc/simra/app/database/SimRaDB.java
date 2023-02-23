@@ -2,6 +2,7 @@ package de.tuberlin.mcc.simra.app.database;
 
 import android.content.Context;
 
+import androidx.room.AutoMigration;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
@@ -10,12 +11,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 
-//TODO: Change exportSchema later on when migrating to the db
-@Database(entities = {DataLogEntry.class}, version = 1, exportSchema = false)
+@Database(entities = {DataLogEntry.class, MetaDataEntry.class}, version = 2, exportSchema = false)
 public abstract class SimRaDB extends RoomDatabase {
 
     public abstract DataLogDao getDataLogDao();
+    public abstract MetaDataDao getMetaDataDao();
 
     private static volatile SimRaDB INSTANCE;
 
@@ -29,7 +31,7 @@ public abstract class SimRaDB extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room
                             .databaseBuilder(context.getApplicationContext(), SimRaDB.class, "SimRaDB")
-                            //TODO: Potentially change this if performance isnt good.
+                            //TODO: Potentially change this if performance isn't good.
                             // ->This can potentially lock up the main thread and using asynchronous
                             // operations is advised.
                             // ->Need to look into properly doing that while making sure that
