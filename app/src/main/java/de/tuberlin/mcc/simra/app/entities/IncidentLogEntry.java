@@ -1,12 +1,22 @@
 package de.tuberlin.mcc.simra.app.entities;
 
+import androidx.annotation.NonNull;
+import androidx.room.Embedded;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
 import java.io.Serializable;
 import java.util.Arrays;
 
 import de.tuberlin.mcc.simra.app.util.Utils;
 
+@Entity(tableName = "incident_table")
 public class IncidentLogEntry implements Serializable {
+    @PrimaryKey(autoGenerate = true)
+    public Integer id;
     public Integer key;
+    @NonNull
+    public Integer rideId;
     public Double latitude;
     public Double longitude;
     public Long timestamp;
@@ -15,13 +25,33 @@ public class IncidentLogEntry implements Serializable {
     public Boolean bikeWithTrailer;
     public Integer phoneLocation;
     public Integer incidentType;
+    @Embedded
     public InvolvedRoadUser involvedRoadUser;
     public Boolean scarySituation;
     public String description;
+    public Integer nn_version;
+
     private static final String TAG = "IncidentLogEntry_LOG";
+
+    //Required for entity classes
+    public IncidentLogEntry(@NonNull Integer rideId, Double latitude, Double longitude, Long timestamp, Integer bikeType, Boolean childOnBoard, Boolean bikeWithTrailer, Integer phoneLocation, Integer incidentType, InvolvedRoadUser involvedRoadUser, Boolean scarySituation, String description) {
+        this.rideId = rideId;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.timestamp = timestamp;
+        this.bikeType = bikeType;
+        this.childOnBoard = childOnBoard;
+        this.bikeWithTrailer = bikeWithTrailer;
+        this.phoneLocation = phoneLocation;
+        this.incidentType = incidentType;
+        this.involvedRoadUser = involvedRoadUser;
+        this.scarySituation = scarySituation;
+        this.description = description;
+    }
 
     private IncidentLogEntry(Builder builder) {
         this.key = builder.key;
+        this.rideId = builder.rideId;
         this.latitude = builder.latitude;
         this.longitude = builder.longitude;
         this.bikeType = builder.bikeType != null ? builder.bikeType : 0;
@@ -35,12 +65,13 @@ public class IncidentLogEntry implements Serializable {
         this.timestamp = builder.timestamp;
     }
 
+    /*
     public static IncidentLogEntry parseEntryFromLine(String string) {
         String[] dataLogLine = string.split(",", -1);
         IncidentLogEntry.Builder dataLogEntry = IncidentLogEntry.newBuilder();
 
         if (dataLogLine.length >= 0 && !dataLogLine[0].isEmpty()) {
-            dataLogEntry.withKey(Integer.valueOf(dataLogLine[0]));
+            dataLogEntry.withRideId(Integer.valueOf(dataLogLine[0]));
         }
 
         if (dataLogLine.length >= 3 && !dataLogLine[0].isEmpty() && !dataLogLine[1].isEmpty() && !dataLogLine[3].isEmpty()) {
@@ -74,7 +105,7 @@ public class IncidentLogEntry implements Serializable {
         );
 
         return dataLogEntry.build();
-    }
+    }*/
 
     public static IncidentLogEntry.Builder newBuilder() {
         return new IncidentLogEntry.Builder();
@@ -139,6 +170,7 @@ public class IncidentLogEntry implements Serializable {
 
     public static final class Builder {
         private Integer key;
+        private Integer rideId;
         private Double latitude;
         private Double longitude;
         private Long timestamp;
@@ -182,6 +214,11 @@ public class IncidentLogEntry implements Serializable {
 
         public Builder withKey(Integer key) {
             this.key = key;
+            return this;
+        }
+
+        public Builder withRideId(Integer rideId) {
+            this.rideId = rideId;
             return this;
         }
 

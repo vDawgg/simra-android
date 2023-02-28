@@ -33,6 +33,8 @@ import javax.net.ssl.HttpsURLConnection;
 import androidx.appcompat.app.AlertDialog;
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.DataLogDao;
+import de.tuberlin.mcc.simra.app.database.IncidentLogDao;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
@@ -41,8 +43,6 @@ import de.tuberlin.mcc.simra.app.entities.Profile;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
 import static de.tuberlin.mcc.simra.app.activities.ProfileActivity.startProfileActivityForChooseRegion;
-import static de.tuberlin.mcc.simra.app.entities.DataLog.DATA_LOG_HEADER;
-import static de.tuberlin.mcc.simra.app.entities.IncidentLog.getEventsFile;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getSharedPrefsDirectory;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.zip;
 import static de.tuberlin.mcc.simra.app.util.SimRAuthenticator.getClientHash;
@@ -54,6 +54,7 @@ public class Utils {
     /**
      * @return content from file with given fileName as a String
      */
+    //TODO: Check if this is still necessary?
     public static String readContentFromFile(String fileName, Context context) {
         File file = new File(IOUtils.Directories.getBaseFolderPath(context) + fileName);
         if (file.isDirectory()) {
@@ -82,7 +83,29 @@ public class Utils {
      * @param context
      * @return The ride to upload and the filtered incident log to overwrite after successful upload
      */
-    //TODO: Check this!
+    public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
+        SimRaDB db = SimRaDB.getDataBase(context);
+        IncidentLogDao incidentLogDao = db.getIncidentLogDao();
+        DataLogDao dataLogDao = db.getDataLogDao();
+
+        StringBuilder content = new StringBuilder();
+
+        for (IncidentLogEntry incident : incidentLogDao.loadIncidentLog(rideId)) {
+            content.append(incident.stringifyDataLogEntry());
+        }
+
+        IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLogFromFileOnly(rideId, context), null, null, null, null, true);
+        String dataLog = DataLog.loadDataLog(rideId, context).toString();
+
+        content.append(System.lineSeparator())
+                .append("=========================")
+                .append(System.lineSeparator())
+                .append(dataLog);
+
+        return new Pair<>(content.toString(), incidentLog);
+    }
+
+    /*
     public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
 
         StringBuilder content = new StringBuilder();
@@ -102,7 +125,6 @@ public class Utils {
 
         IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLogFromFileOnly(rideId, context),null,null,null,null,true);
 
-        //TODO: Think about changing this as it seems to be a pretty inefficient way to do things
         String dataLog = DataLog.loadDataLog(rideId, context).toString();
 
         // content.append(incidentLog.toString());
@@ -110,7 +132,7 @@ public class Utils {
         content.append(dataLog);
 
         return new Pair<>(content.toString(), incidentLog);
-    }
+    }*/
 
     public static void overwriteFile(String content, File file) {
         try {
@@ -283,7 +305,7 @@ public class Utils {
         return new Pair<>(null,-2);
     }
 
-
+    //TODO: Change this? -> Is this still correct when AccEvents is deprecated
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
         Log.d(TAG, "findAccEventsLocal()");
         List<AccEvent> accEvents = new ArrayList<>(6);
@@ -466,6 +488,7 @@ public class Utils {
         return new Pair<>(incidents,0);
     }
 
+    //TODO: Change this
     private static void fixRide(int rideId, Context context) {
         try {
             StringBuilder fixedRideContent = new StringBuilder();

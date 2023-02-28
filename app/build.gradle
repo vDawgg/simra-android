@@ -79,6 +79,7 @@ dependencies {
 
     // RingBuffer
     implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'androidx.room:room-common:2.4.2'
 
     // Tests
     testImplementation 'junit:junit:4.13'

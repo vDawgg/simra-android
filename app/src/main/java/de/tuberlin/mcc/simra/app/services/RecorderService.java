@@ -435,10 +435,10 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                     // if the obs measurement is between -100 an 150cm, it is a close pass and needs to be shown as a near miss incident, else a "regular" pass, just to be shown in the csv and hidden on the map.
                     if ((realLeftDistance >= -100 && realLeftDistance <= 150) || ((realRightDistance >= -100 && realRightDistance <= 150))) {
                         Log.d(TAG, "Adding hidden Close Pass with TS: " + lastDataLogEntryTS + " realLeftDistance: " + realLeftDistance + " and realRightDistance: " + realRightDistance);
-                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withIncidentType(IncidentLogEntry.INCIDENT_TYPE.OBS_UNKNOWN).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(3000).build());
+                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(IncidentLogEntry.INCIDENT_TYPE.OBS_UNKNOWN).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(3000).build());
                     } else {
                         Log.d(TAG, "Adding visible Close Pass with TS: " + lastDataLogEntryTS + " realLeftDistance: " + realLeftDistance + " and realRightDistance: " + realRightDistance);
-                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withIncidentType(IncidentLogEntry.INCIDENT_TYPE.CLOSE_PASS).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(2000).build());
+                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(IncidentLogEntry.INCIDENT_TYPE.CLOSE_PASS).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(2000).build());
                     }
                     // finish, when at the end of the ride.
                     if (j+1 >= gpsLines.size()) {
@@ -561,7 +561,7 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                     );
 
                     if (incidentDuringRide != null) {
-                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withIncidentType(incidentDuringRide).withBaseInformation(lastAccUpdate, lastLocation.getLatitude(), lastLocation.getLongitude()).build());
+                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(incidentDuringRide).withBaseInformation(lastAccUpdate, lastLocation.getLatitude(), lastLocation.getLongitude()).build());
                         incidentDuringRide = null;
                     }
 

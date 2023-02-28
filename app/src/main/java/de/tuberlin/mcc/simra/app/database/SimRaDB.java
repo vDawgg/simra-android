@@ -11,13 +11,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
+import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 
-@Database(entities = {DataLogEntry.class, MetaDataEntry.class}, version = 2, exportSchema = false)
+@Database(entities = {DataLogEntry.class, MetaDataEntry.class, IncidentLogEntry.class}, version = 2, exportSchema = false)
 public abstract class SimRaDB extends RoomDatabase {
 
     public abstract DataLogDao getDataLogDao();
     public abstract MetaDataDao getMetaDataDao();
+    public abstract IncidentLogDao getIncidentLogDao();
 
     private static volatile SimRaDB INSTANCE;
 
