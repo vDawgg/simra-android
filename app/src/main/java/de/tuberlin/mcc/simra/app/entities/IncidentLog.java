@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SimpleTimeZone;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import de.tuberlin.mcc.simra.app.database.IncidentLogDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
@@ -147,9 +148,17 @@ public class IncidentLog {
     public static void saveIncidentLog(IncidentLog incidentLog, Context context) {
         List<IncidentLogEntry> incidents = new ArrayList<>(incidentLog.getIncidents().values());
 
+        //Make sure that all incidents actually have the correct ride-id
+        for (int i = 0; i < incidents.size(); i++) {
+            IncidentLogEntry incident = incidents.get(i);
+            incident.rideId = incidentLog.rideId;
+            incident.nn_version = incidentLog.nn_version;
+            incidents.set(i, incident);
+        }
+
         SimRaDB db = SimRaDB.getDataBase(context);
         IncidentLogDao dao = db.getIncidentLogDao();
-        dao.addOrUpdateIncidentLogEntries(incidents).blockingAwait();
+        dao.addOrUpdateIncidentLogEntries(incidents);
     }
 
     /*
@@ -225,6 +234,7 @@ public class IncidentLog {
 
     public IncidentLogEntry updateOrAddIncident(IncidentLogEntry incidentLogEntry, int nn_version) {
         this.nn_version = nn_version;
+        incidentLogEntry.nn_version = nn_version;
         return updateOrAddIncident(incidentLogEntry);
     }
 

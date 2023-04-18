@@ -12,7 +12,7 @@ import io.reactivex.Completable;
 public interface MetaDataDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    public Completable updateOrAddMetadataEntryForRide(MetaDataEntry entry);
+    public void updateOrAddMetadataEntryForRide(MetaDataEntry entry);
 
     @Query("select * from metadata_table where rideId == :rideId")
     public MetaDataEntry getMetadataEntryForRide(Integer rideId);

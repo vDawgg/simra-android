@@ -1,5 +1,6 @@
 package de.tuberlin.mcc.simra.app.entities;
 
+//TODO: Check if this needs to be ported as well
 /**
  * A Ride contains both the Log Entries, as well as the incidents and settings associated with it.
  */

@@ -198,11 +198,15 @@ public class Utils {
             Pair<List<IncidentLogEntry>, Integer> findAccEventOnlineResult = findAccEventOnline(rideId, bike, pLoc, context);
             foundEvents = findAccEventOnlineResult.first;
             nn_version = findAccEventOnlineResult.second;
+            Log.d("DEBUG", "nn_version obtained online: "+nn_version);
         }
-        if (foundEvents != null && foundEvents.size() > 0)
+        if (foundEvents != null && foundEvents.size() > 0) {
             return new Pair<>(foundEvents, nn_version);
-        else
+        }
+        else {
+            Log.d("DEBUG", "Trying to find events locally");
             return findAccEventsLocal(rideId, state, context);
+        }
     }
 
     /*
@@ -210,6 +214,8 @@ public class Utils {
      * */
     //TODO: Change this!
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline(int rideId, int bike, int pLoc, Context context) {
+        Log.d("DEBUG", "Trying to find acc events online");
+
         try {
             String responseString = "";
 
@@ -305,7 +311,193 @@ public class Utils {
         return new Pair<>(null,-2);
     }
 
+    //TODO: Actually do this
+    public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline1(int rideId, int bike, int pLoc, Context context) {
+        try {
+            String responseString = "";
+
+            URL url = new URL(BuildConfig.API_ENDPOINT + BuildConfig.API_VERSION + "classify-ride-cyclesense?clientHash=" + getClientHash(context)
+                    + "&os=android");
+
+            Log.d(TAG, "URL for AI-Backend: " + url.toString());
+            HttpsURLConnection urlConnection = (HttpsURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("POST");
+            urlConnection.setRequestProperty("Content-Type", "text/plain");
+            urlConnection.setRequestProperty("Accept","*/*");
+            urlConnection.setDoOutput(true);
+            urlConnection.setReadTimeout(30000);
+            urlConnection.setConnectTimeout(30000);
+
+
+
+        } catch (IOException e) { //| JSONException e) {
+            e.printStackTrace();
+        }
+
+        return new Pair<>(null, -2);
+    }
+
+
+    //TODO: Check if error handling actually needs to be implemented here!
+    public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
+        class Event {
+            double lat;
+            double lon;
+            double maxXDelta;
+            double maxYDelta;
+            double maxZDelta;
+            long timeStamp;
+
+            public Event(double lat, double lon, double maxXDelta, double maxYDelta, double maxZDelta, long timeStamp) {
+                this.lat = lat;
+                this.lon = lon;
+                this.maxXDelta = maxXDelta;
+                this.maxYDelta = maxYDelta;
+                this.maxZDelta = maxZDelta;
+                this.timeStamp = timeStamp;
+            }
+        }
+
+        Log.d(TAG, "findAccEventsLocal()");
+        List<AccEvent> accEvents = new ArrayList<>(6);
+
+        // Each String[] in ride is a part of the ride which is approx. 3 seconds long.
+        List<String[]> ride = new ArrayList<>();
+        List<Event> events = new ArrayList<>(6);
+        accEvents.add(new AccEvent(0, 999.0, 999.0, 0, false, "0", "0"));
+        accEvents.add(new AccEvent(1, 999.0, 999.0, 0, false, "0", "0"));
+        accEvents.add(new AccEvent(2, 999.0, 999.0, 0, false, "0", "0"));
+        accEvents.add(new AccEvent(3, 999.0, 999.0, 0, false, "0", "0"));
+        accEvents.add(new AccEvent(4, 999.0, 999.0, 0, false, "0", "0"));
+        accEvents.add(new AccEvent(5, 999.0, 999.0, 0, false, "0", "0"));
+
+        Event template = new Event(0, 0, 0, 0, 0, 0);
+        events.add(template);
+        events.add(template);
+        events.add(template);
+        events.add(template);
+        events.add(template);
+        events.add(template);
+
+        SimRaDB db = SimRaDB.getDataBase(context);
+        DataLogDao dao = db.getDataLogDao();
+        DataLogEntry[] entries = dao.loadAllEntriesOfRide(rideId);
+
+        boolean newSubPart = false;
+
+        for (int i = 0; i < entries.length; i++) {
+            if (newSubPart) break;
+
+            DataLogEntry entry = entries[i];
+
+            double maxX = entry.accelerometerX;
+            double minX = entry.accelerometerX;
+            double maxY = entry.accelerometerY;
+            double minY = entry.accelerometerY;
+            double maxZ = entry.accelerometerZ;
+            double minZ = entry.accelerometerZ;
+            long timestamp = entry.timestamp;
+
+            if (entries.length > i+1 && entries[i+1].latitude == null) {
+                newSubPart = true;
+
+                for (int j = i+1; j < entries.length; j++) {
+                    DataLogEntry tempEntry = entries[j];
+
+                    maxX = (tempEntry.accelerometerX >= maxX) ? tempEntry.accelerometerX : maxX;
+                    minX = (tempEntry.accelerometerX < minX) ? tempEntry.accelerometerX : minX;
+                    maxY = (tempEntry.accelerometerY >= maxY) ? tempEntry.accelerometerY : maxY;
+                    minY = (tempEntry.accelerometerY < minY) ? tempEntry.accelerometerY : minY;
+                    maxZ = (tempEntry.accelerometerZ >= maxZ) ? tempEntry.accelerometerZ : maxZ;
+                    minZ = (tempEntry.accelerometerZ < minZ) ? tempEntry.accelerometerZ : minZ;
+
+                    if (entries.length > j+1 && entries[j+1].latitude == null) {
+                        newSubPart = false;
+                        break;
+                    }
+                }
+            }
+
+            double maxXDelta = Math.abs(maxX - minX);
+            double maxYDelta = Math.abs(maxY - minY);
+            double maxZDelta = Math.abs(maxZ - minZ);
+
+            double lat = (entry.latitude == null) ? 0f : entry.latitude;
+            double lon = (entry.longitude == null) ? 0f : entry.longitude;
+            Event currEvent = new Event(lat, lon, maxXDelta, maxYDelta, maxZDelta, timestamp);
+
+            // Checks whether there is a minimum of <threshold> milliseconds
+            // between the actual event and the top 6 events so far.
+            int threshold = 10000; // 10 seconds
+            long minTimeDelta = 999999999;
+            for (int j = 0; j < events.size(); j++) {
+                long actualTimeDelta = timestamp - events.get(j).timeStamp;
+                if (actualTimeDelta < minTimeDelta) {
+                    minTimeDelta = actualTimeDelta;
+                }
+            }
+            boolean enoughTimePassed = minTimeDelta > threshold;
+
+            //TODO: Shorten this when there is enough time!
+            // Check whether actualX is one of the top 2 events
+            boolean eventAdded = false;
+            if (maxXDelta > events.get(0).maxXDelta && !eventAdded && enoughTimePassed) {
+                Event temp = events.get(0);
+                events.set(0, currEvent);
+                accEvents.set(0, new AccEvent(0, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
+
+                events.set(1, temp);
+                accEvents.set(1, new AccEvent(1, temp.lat, temp.lon, temp.timeStamp, false, "0", "0"));
+                eventAdded = true;
+            } else if (maxXDelta > events.get(1).maxXDelta && !eventAdded && enoughTimePassed) {
+                events.set(1, currEvent);
+                accEvents.set(1, new AccEvent(1, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
+                eventAdded = true;
+            }
+            // Check whether actualY is one of the top 2 events
+            else if (maxYDelta > events.get(2).maxYDelta && !eventAdded && enoughTimePassed) {
+                Event temp = events.get(2);
+                events.set(2, currEvent);
+                accEvents.set(2, new AccEvent(2, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
+                events.set(3, temp);
+                accEvents.set(3, new AccEvent(3, temp.lat, temp.lon, temp.timeStamp, false, "0", "0"));
+                eventAdded = true;
+            } else if (maxYDelta > events.get(3).maxYDelta && !eventAdded && enoughTimePassed) {
+                events.set(3, currEvent);
+                accEvents.set(3, new AccEvent(3, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
+                eventAdded = true;
+            }
+            // Check whether actualZ is one of the top 2 events
+            else if (maxZDelta > events.get(4).maxZDelta && !eventAdded && enoughTimePassed) {
+                Event temp = events.get(4);
+                events.set(4, currEvent);
+                accEvents.set(4, new AccEvent(4, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
+                events.set(5, temp);
+                accEvents.set(5, new AccEvent(5, temp.lat, temp.lon, temp.timeStamp, false, "0", "0"));
+
+            } else if (maxZDelta > events.get(5).maxZDelta && !eventAdded && enoughTimePassed) {
+                events.set(5, currEvent);
+                accEvents.set(5, new AccEvent(5, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
+                eventAdded = true;
+            }
+        }
+
+        List<IncidentLogEntry> incidents = new ArrayList<>();
+        int key = 0;
+        for (AccEvent accEvent : accEvents) {
+            if (!(accEvent.position.getLatitude() == 999 || accEvent.position.getLatitude() == 0f)) {
+                incidents.add(IncidentLogEntry.newBuilder().withRideId(rideId).withIncidentType(IncidentLogEntry.INCIDENT_TYPE.AUTO_GENERATED).withBaseInformation(accEvent.timeStamp, accEvent.position.getLatitude(), accEvent.position.getLongitude()).withKey(key++).build());
+            }
+        }
+
+        Pair<List<IncidentLogEntry>, Integer> r = new Pair<>(incidents, 0);
+        Log.d("DEBUG", "nn_version of return: "+r.second);
+
+        return new Pair<>(incidents,0);
+    }
+
     //TODO: Change this? -> Is this still correct when AccEvents is deprecated
+    /*
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
         Log.d(TAG, "findAccEventsLocal()");
         List<AccEvent> accEvents = new ArrayList<>(6);
@@ -486,9 +678,10 @@ public class Utils {
         }
 
         return new Pair<>(incidents,0);
-    }
+    }*/
 
     //TODO: Change this
+    // Is this still needed at all?
     private static void fixRide(int rideId, Context context) {
         try {
             StringBuilder fixedRideContent = new StringBuilder();

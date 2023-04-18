@@ -16,12 +16,15 @@ public interface IncidentLogDao {
 
     //TODO: Find out if using a List here is really necessary
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    public Completable addOrUpdateIncidentLogEntries(List<IncidentLogEntry> entries);
+    public void addOrUpdateIncidentLogEntries(List<IncidentLogEntry> entries);
 
     @Query("select * from incident_table where rideId == :rideId")
     public IncidentLogEntry[] loadIncidentLog(Integer rideId);
 
+    @Query("delete from incident_table where id == :rideId")
+    public void deleteEntriesOfRide(Integer rideId);
+
     //TODO: Find out if this is sensible
     @Query("delete from incident_table where id == :id")
-    public Completable deleteIncidentLogEntry(Integer id);
+    public void deleteIncidentLogEntry(Integer id);
 }

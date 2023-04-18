@@ -14,8 +14,11 @@ import io.reactivex.Completable;
 public interface DataLogDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    public Completable insertDataLogEntries(List<DataLogEntry> entries);
+    public void insertDataLogEntries(List<DataLogEntry> entries);
 
     @Query("SELECT * FROM data_log_table WHERE rideId == :rideId")
     public DataLogEntry[] loadAllEntriesOfRide(Integer rideId);
+
+    @Query("delete from data_log_table where rideId == :rideId")
+    public void deleteEntriesOfRide(Integer rideId);
 }

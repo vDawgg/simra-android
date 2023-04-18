@@ -370,14 +370,13 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             DataLogDao dataLogDao = db.getDataLogDao();
             //TODO: Find a way of doing this without using a blockingAwait() calls as the insert
             // then runs on the main thread
-            dataLogDao.insertDataLogEntries(acc).blockingAwait();
+            dataLogDao.insertDataLogEntries(acc);
             long end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
 
             //MetaData.updateOrAddMetaDataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
             MetaDataDao metaDataDao = db.getMetaDataDao();
-            metaDataDao.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region))
-                    .blockingAwait();
+            metaDataDao.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region));
 
             IncidentLog.saveIncidentLog(incidentLog, this);
             editor.putInt("RIDE-KEY", key + 1);
@@ -561,7 +560,7 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                     );
 
                     if (incidentDuringRide != null) {
-                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(incidentDuringRide).withBaseInformation(lastAccUpdate, lastLocation.getLatitude(), lastLocation.getLongitude()).build());
+                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(incidentDuringRide).withBaseInformation(lastAccUpdate, lastLocation.getLatitude(), lastLocation.getLongitude()).build(), 0);
                         incidentDuringRide = null;
                     }
 
