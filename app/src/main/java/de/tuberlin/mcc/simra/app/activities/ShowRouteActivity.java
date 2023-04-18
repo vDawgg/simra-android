@@ -636,20 +636,21 @@ public class ShowRouteActivity extends BaseActivity {
     private class LoadOriginalDataLogTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... voids) {
-            originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
 
-            //TODO: Benchmark this as well!
-            //TODO: Change this -> Is this at all necessary?
-            //Try to reload the DL until the db contains information
-            while (originalDataLog.dataLogEntries.size() == 0) {
-                originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
-            }
+            long start = System.currentTimeMillis();
+            originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Reading datalog took: " + (end-start) + " (in ms)");
 
             Log.d("DEBUG", "OG-DL-size: "+originalDataLog.dataLogEntries.size());
 
-            //originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
             Polyline originalRoute = originalDataLog.rideAnalysisData.route;
+
+            start = System.currentTimeMillis();
             incidentLog = IncidentLog.loadIncidentLogWithRideSettingsInformation(rideId, bike, pLoc, child == 1, trailer == 1, ShowRouteActivity.this);
+            end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Reading incidentLog took: " + (end-start) + " (in ms)");
+
             if (editableRoute != null) {
                 binding.showRouteMap.getOverlayManager().remove(editableRoute);
             }

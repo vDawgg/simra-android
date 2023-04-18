@@ -123,10 +123,12 @@ public class HistoryActivity extends BaseActivity {
      */
     //TODO: Test this!
     private void refreshMyRides() {
+        long start = System.currentTimeMillis();
         SimRaDB simRaDB = SimRaDB.getDataBase(this);
         MetaDataDao metaDataDao = simRaDB.getMetaDataDao();
-
         MetaDataEntry[] metaDataEntries = metaDataDao.getMetadataEntriesSortedByKey();
+        long end = System.currentTimeMillis();
+        Log.d("BENCHMARK", "Reading metadataLog took: " + (end-start) + " (in ms)");
 
         if (metaDataEntries.length > 0) {
             List<String> stringArrayList = new ArrayList<>();
@@ -289,15 +291,29 @@ public class HistoryActivity extends BaseActivity {
 
             //TODO: Test this!
             //MetaData.deleteMetaDataEntryForRide(Integer.parseInt(clicked), this);
+
+            //TODO: Separate the loading of the database from deleting the first data types
+            // Or do it for every delete operation -> Otherwise they arent recorded the same
+            // way
+
+            long start = System.currentTimeMillis();
             SimRaDB db = SimRaDB.getDataBase(this);
             MetaDataDao metaDataDao = db.getMetaDataDao();
             metaDataDao.deleteMetadataEntryForRide(rideId);
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Deleting metadataLog took: " + (end-start) + " (in ms)");
 
+            start = System.currentTimeMillis();
             DataLogDao dataLogDao = db.getDataLogDao();
             dataLogDao.deleteEntriesOfRide(rideId);
+            end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Deleting dataLog took: " + (end-start) + " (in ms)");
 
+            start = System.currentTimeMillis();
             IncidentLogDao incidentLogDao = db.getIncidentLogDao();
             incidentLogDao.deleteEntriesOfRide(rideId);
+            end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Deleting incidentLog took: " + (end-start) + " (in ms)");
 
             Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
             refreshMyRides();
