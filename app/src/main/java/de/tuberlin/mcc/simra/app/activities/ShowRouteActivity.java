@@ -623,9 +623,18 @@ public class ShowRouteActivity extends BaseActivity {
     private class LoadOriginalDataLogTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... voids) {
+            long start = System.currentTimeMillis();
             originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Reading dataLog took: "+(end-start)+" (in ms)");
+
             Polyline originalRoute = originalDataLog.rideAnalysisData.route;
+
+            start = System.currentTimeMillis();
             incidentLog = IncidentLog.loadIncidentLogWithRideSettingsInformation(rideId, bike, pLoc, child == 1, trailer == 1, ShowRouteActivity.this);
+            end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Reading incidentLog took: "+(end-start)+" (in ms)");
+
             if (editableRoute != null) {
                 binding.showRouteMap.getOverlayManager().remove(editableRoute);
             }

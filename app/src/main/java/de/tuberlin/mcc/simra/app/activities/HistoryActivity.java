@@ -115,6 +115,7 @@ public class HistoryActivity extends BaseActivity {
     private void refreshMyRides() {
         List<String[]> metaDataLines = new ArrayList<>();
 
+        long start = System.currentTimeMillis();
         File metaDataFile = IOUtils.Files.getMetaDataFile(this);
         if (metaDataFile.exists()) {
             try {
@@ -128,6 +129,9 @@ public class HistoryActivity extends BaseActivity {
                         metaDataLines.add(line.split(","));
                     }
                 }
+                long end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Reading MetadataLog took: "+(end-start)+" (in ms)");
+
                 Log.d(TAG, "metaDataLines: " + Arrays.deepToString(metaDataLines.toArray()));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -209,6 +213,7 @@ public class HistoryActivity extends BaseActivity {
             Log.d(TAG, "btnDelete.onClick() clicked: " + clicked);
             clicked = clicked.replace("#", "").split(";")[0];
             if (dirFiles.length != 0) {
+                long start = System.currentTimeMillis();
                 for (File actualFile : dirFiles) {
                     if (actualFile.getName().startsWith(clicked + "_") || actualFile.getName().startsWith("accEvents" + clicked)) {
 
@@ -216,8 +221,15 @@ public class HistoryActivity extends BaseActivity {
                         Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
                     }
                 }
+                long end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Deleting dataLog took: "+(end-start)+" (in ms)");
             }
+            long start = System.currentTimeMillis();
             MetaData.deleteMetaDataEntryForRide(Integer.parseInt(clicked), this);
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Deleting metadataLog took: "+(end-start)+" (in ms)");
+
+            //TODO: Find out why the incidents associated with a ride do not get deleted here!
             Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
             refreshMyRides();
         });
