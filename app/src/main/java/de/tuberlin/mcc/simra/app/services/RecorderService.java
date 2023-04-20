@@ -33,15 +33,12 @@ import java.util.Queue;
 import java.util.TreeMap;
 
 import de.tuberlin.mcc.simra.app.R;
-import de.tuberlin.mcc.simra.app.database.DataLogDao;
-import de.tuberlin.mcc.simra.app.database.MetaDataDao;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
-import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.util.ConnectionManager;
 import de.tuberlin.mcc.simra.app.util.Constants;
 import de.tuberlin.mcc.simra.app.util.ForegroundServiceNotificationManager;
@@ -364,24 +361,15 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             //TODO: Try to improve this if possible as this write currently takes 1027ms compared to
             // the old csv implementation which took 12 ms!
             long start = System.currentTimeMillis();
-            //TODO: Give views a try!
-            //overwriteFile((IOUtils.Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator() + accGpsString), IOUtils.Files.getGPSLogFile(key, false, this));
-            SimRaDB db = SimRaDB.getDataBase(this);
-            DataLogDao dataLogDao = db.getDataLogDao();
-            //TODO: Find a way of doing this without using a blockingAwait() calls as the insert
-            // then runs on the main thread
-            dataLogDao.insertDataLogEntries(acc);
+            DataLog.saveDataLogEntries(acc, this);
             long end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
 
-            //MetaData.updateOrAddMetaDataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
             start = System.currentTimeMillis();
-            MetaDataDao metaDataDao = db.getMetaDataDao();
-            metaDataDao.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region));
+            MetaData.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
             end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Writing metaDataLog took: " + (end-start) + " (in ms)");
 
-            //TODO: Adapt doing things this way to the other Logs as well
             start = System.currentTimeMillis();
             IncidentLog.saveIncidentLog(incidentLog, this);
             end = System.currentTimeMillis();

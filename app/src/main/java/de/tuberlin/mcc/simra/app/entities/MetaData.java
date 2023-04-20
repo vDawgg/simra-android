@@ -1,19 +1,8 @@
 package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-
-import de.tuberlin.mcc.simra.app.util.IOUtils;
-import de.tuberlin.mcc.simra.app.util.Utils;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
 
 //TODO: Remove this whole class as it should not be needed anymore
@@ -36,86 +25,37 @@ public class MetaData {
         this.metaDataEntries = metaDataEntries;
     }
 
-    /*
-    public static void saveMetaData(MetaData metaData, Context context) {
-        StringBuilder metaDataString = new StringBuilder();
-        Iterator<Map.Entry<Integer, MetaDataEntry>> iterator = metaData.metaDataEntries.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<Integer, MetaDataEntry> entry = iterator.next();
-            metaDataString.append(entry.getValue().stringifyMetaDataEntry()).append(System.lineSeparator());
-        }
-        File newFile = IOUtils.Files.getMetaDataFile(context);
-        Utils.overwriteFile(IOUtils.Files.getFileInfoLine() + METADATA_HEADER + System.lineSeparator() + metaDataString, newFile);
-    }*/
-
-    /*
-    public static MetaData loadMetaData(Context context) {
-        File metaDataFile = IOUtils.Files.getMetaDataFile(context);
-        Map<Integer, MetaDataEntry> metaDataEntries = new HashMap() {};
-        if (metaDataFile.exists()) {
-            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(metaDataFile))) {
-                // Skip first two line as they do only contain the Header
-                bufferedReader.readLine();
-                bufferedReader.readLine();
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        MetaDataEntry metaDataEntry = MetaDataEntry.parseEntryFromLine(line);
-                        metaDataEntries.put(metaDataEntry.rideId, metaDataEntry);
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return new MetaData(metaDataEntries);
-    }*/
-
-    /*
-    public static MetaDataEntry getMetaDataEntryForRide(Integer rideId, Context context) {
-        File metaDataFile = IOUtils.Files.getMetaDataFile(context);
-        if (metaDataFile.exists()) {
-            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(metaDataFile))) {
-                // Skip first two line as they do only contain the Header
-                bufferedReader.readLine();
-                bufferedReader.readLine();
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        MetaDataEntry metaDataEntry = MetaDataEntry.parseEntryFromLine(line);
-                        if (metaDataEntry.rideId.equals(rideId)) {
-                            return metaDataEntry;
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return null;
+    /**
+     * Returns the MetadataEntry for a specified ride
+     * @param rideId the given rideId
+     * @param context
+     * @return
+     */
+    public static MetaDataEntry getMetadataEntryForRide(int rideId, Context context) {
+        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntryForRide(rideId);
     }
 
-    public static void updateOrAddMetaDataEntryForRide(MetaDataEntry metaDataEntry, Context context) {
-        MetaData metaData = loadMetaData(context);
-        metaData.metaDataEntries.put(metaDataEntry.rideId, metaDataEntry);
-        saveMetaData(metaData, context);
+    /**
+     * Returns all MetadataEntries sorted by the rideId (lowest to highest)
+     * @param context
+     * @return Array of MetadataEntries sorted by the rideId
+     */
+    public static MetaDataEntry[] getMetadataEntriesSortedByKey(Context context) {
+        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey();
     }
 
-    public static void deleteMetaDataEntryForRide(int rideId, Context context) {
-        MetaData metaData = loadMetaData(context);
-        metaData.metaDataEntries.remove(rideId);
-        saveMetaData(metaData, context);
+    /**
+     * Updates a given MetadataEntry if it exists. If not a new entry is added to the db
+     * @param entry the MetadataEntry
+     * @param context
+     */
+    public static void updateOrAddMetadataEntryForRide(MetaDataEntry entry, Context context) {
+        SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry);
     }
 
-    public static List<MetaDataEntry> getMetaDataEntries(Context context) {
-        List<MetaDataEntry> metaDataEntries = new ArrayList<>();
-        Iterator<Map.Entry<Integer, MetaDataEntry>> iterator = loadMetaData(context).metaDataEntries.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<Integer, MetaDataEntry> entry = iterator.next();
-            metaDataEntries.add(entry.getValue());
-        }
-        return metaDataEntries;
-    }*/
+    public static void deleteMetadataEntryForRide(int rideId, Context context) {
+        SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId);
+    }
 
     //TODO: Check if this should really be here and not in MetaDataEntry
     public static class STATE {

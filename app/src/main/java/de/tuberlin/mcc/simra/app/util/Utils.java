@@ -33,14 +33,11 @@ import javax.net.ssl.HttpsURLConnection;
 import androidx.appcompat.app.AlertDialog;
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
-import de.tuberlin.mcc.simra.app.database.DataLogDao;
-import de.tuberlin.mcc.simra.app.database.IncidentLogDao;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.Profile;
-import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
 import static de.tuberlin.mcc.simra.app.activities.ProfileActivity.startProfileActivityForChooseRegion;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getSharedPrefsDirectory;
@@ -84,13 +81,9 @@ public class Utils {
      * @return The ride to upload and the filtered incident log to overwrite after successful upload
      */
     public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
-        SimRaDB db = SimRaDB.getDataBase(context);
-        IncidentLogDao incidentLogDao = db.getIncidentLogDao();
-        DataLogDao dataLogDao = db.getDataLogDao();
-
         StringBuilder content = new StringBuilder();
 
-        for (IncidentLogEntry incident : incidentLogDao.loadIncidentLog(rideId)) {
+        for (IncidentLogEntry incident : IncidentLog.loadIncidentLogEntriesOfRide(rideId, context)) {
             content.append(incident.stringifyDataLogEntry());
         }
 
@@ -104,35 +97,6 @@ public class Utils {
 
         return new Pair<>(content.toString(), incidentLog);
     }
-
-    /*
-    public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
-
-        StringBuilder content = new StringBuilder();
-
-        File incidentFile = getEventsFile(rideId, context);
-
-        if (incidentFile.exists()) {
-            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(incidentFile))) {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    content.append(line).append(System.lineSeparator());
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLogFromFileOnly(rideId, context),null,null,null,null,true);
-
-        String dataLog = DataLog.loadDataLog(rideId, context).toString();
-
-        // content.append(incidentLog.toString());
-        content.append(System.lineSeparator()).append("=========================").append(System.lineSeparator());
-        content.append(dataLog);
-
-        return new Pair<>(content.toString(), incidentLog);
-    }*/
 
     public static void overwriteFile(String content, File file) {
         try {
@@ -339,6 +303,8 @@ public class Utils {
 
 
     //TODO: Check if error handling actually needs to be implemented here!
+    //TODO: Change all occurences of Accevent to IncidentLogEntry instead! -> This should also make it
+    // possible to delete Accevent alltogether
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
         class Event {
             double lat;
@@ -379,9 +345,7 @@ public class Utils {
         events.add(template);
         events.add(template);
 
-        SimRaDB db = SimRaDB.getDataBase(context);
-        DataLogDao dao = db.getDataLogDao();
-        DataLogEntry[] entries = dao.loadAllEntriesOfRide(rideId);
+        DataLogEntry[] entries = DataLog.loadDataLogEntriesOfRide(rideId, context);
 
         boolean newSubPart = false;
 
@@ -496,190 +460,6 @@ public class Utils {
         return new Pair<>(incidents,0);
     }
 
-    //TODO: Change this? -> Is this still correct when AccEvents is deprecated
-    /*
-    public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
-        Log.d(TAG, "findAccEventsLocal()");
-        List<AccEvent> accEvents = new ArrayList<>(6);
-
-        // Each String[] in ride is a part of the ride which is approx. 3 seconds long.
-        List<String[]> ride = new ArrayList<>();
-        List<String[]> events = new ArrayList<>(6);
-        accEvents.add(new AccEvent(0, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(1, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(2, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(3, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(4, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(5, 999.0, 999.0, 0, false, "0", "0"));
-
-        String[] template = {"0.0", "0.0", "0.0", "0.0", "0.0", "0"};
-        events.add(template);
-        events.add(template);
-        events.add(template);
-        events.add(template);
-        events.add(template);
-        events.add(template);
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(IOUtils.Files.getGPSLogFile(rideId, false, context)));
-            br.readLine();
-            br.readLine();
-            String thisLine = br.readLine();
-            String nextLine = br.readLine();
-
-            String[] partOfRide;
-            boolean newSubPart = false;
-            // Loops through all lines. If the line starts with lat and lon, it is consolidated into
-            // a part of a ride together with the subsequent lines that don't have lat and lon.
-            // Then, it takes the top two X-, Y- and Z-deltas and creates AccEvents from them.
-            while ((thisLine != null) && (!newSubPart)) {
-                String[] currentLine = thisLine.split(",");
-                // currentLine: {lat, lon, maxXDelta, maxYDelta, maxZDelta, timeStamp}
-                partOfRide = new String[6];
-                String lat = currentLine[0];
-                String lon = currentLine[1];
-                String timeStamp = currentLine[5];
-
-                partOfRide[0] = lat; // lat
-                partOfRide[1] = lon; // lon
-                partOfRide[2] = "0"; // maxXDelta
-                partOfRide[3] = "0"; // maxYDelta
-                partOfRide[4] = "0"; // maxZDelta
-                partOfRide[5] = timeStamp; // timeStamp
-
-                double maxX = Double.parseDouble(currentLine[2]);
-                double minX = Double.parseDouble(currentLine[2]);
-                double maxY = Double.parseDouble(currentLine[3]);
-                double minY = Double.parseDouble(currentLine[3]);
-                double maxZ = Double.parseDouble(currentLine[4]);
-                double minZ = Double.parseDouble(currentLine[4]);
-                thisLine = nextLine;
-
-                nextLine = br.readLine();
-                if (thisLine != null && thisLine.startsWith(",,")) {
-                    newSubPart = true;
-                }
-
-                while ((thisLine != null) && newSubPart) {
-
-                    currentLine = thisLine.split(",");
-                    if (Double.parseDouble(currentLine[2]) >= maxX) {
-                        maxX = Double.parseDouble(currentLine[2]);
-                    } else if (Double.parseDouble(currentLine[2]) < minX) {
-                        minX = Double.parseDouble(currentLine[2]);
-                    }
-                    if (Double.parseDouble(currentLine[3]) >= maxY) {
-                        maxY = Double.parseDouble(currentLine[3]);
-                    } else if (Double.parseDouble(currentLine[3]) < minY) {
-                        minY = Double.parseDouble(currentLine[3]);
-                    }
-                    if (Double.parseDouble(currentLine[4]) >= maxZ) {
-                        maxZ = Double.parseDouble(currentLine[4]);
-                    } else if (Double.parseDouble(currentLine[4]) < minZ) {
-                        minZ = Double.parseDouble(currentLine[4]);
-                    }
-                    thisLine = nextLine;
-                    nextLine = br.readLine();
-
-                    if (thisLine != null && !thisLine.startsWith(",,")) {
-                        newSubPart = false;
-                    }
-                }
-
-                double maxXDelta = Math.abs(maxX - minX);
-                double maxYDelta = Math.abs(maxY - minY);
-                double maxZDelta = Math.abs(maxZ - minZ);
-
-                partOfRide[2] = String.valueOf(maxXDelta);
-                partOfRide[3] = String.valueOf(maxYDelta);
-                partOfRide[4] = String.valueOf(maxZDelta);
-
-                ride.add(partOfRide);
-
-                // Checks whether there is a minimum of <threshold> milliseconds
-                // between the actual event and the top 6 events so far.
-                int threshold = 10000; // 10 seconds
-                long minTimeDelta = 999999999;
-                for (int i = 0; i < events.size(); i++) {
-                    long actualTimeDelta = Long.parseLong(partOfRide[5]) - Long.parseLong(events.get(i)[5]);
-                    if (actualTimeDelta < minTimeDelta) {
-                        minTimeDelta = actualTimeDelta;
-                    }
-                }
-                boolean enoughTimePassed = minTimeDelta > threshold;
-
-                // Check whether actualX is one of the top 2 events
-                boolean eventAdded = false;
-                if (maxXDelta > Double.parseDouble(events.get(0)[2]) && !eventAdded && enoughTimePassed) {
-
-                    String[] temp = events.get(0);
-                    events.set(0, partOfRide);
-                    accEvents.set(0, new AccEvent(0, Double.parseDouble(partOfRide[0]), Double.parseDouble(partOfRide[1]), Long.parseLong(partOfRide[5]), false, "0", "0"));
-
-                    events.set(1, temp);
-                    accEvents.set(1, new AccEvent(1, Double.parseDouble(temp[0]), Double.parseDouble(temp[1]), Long.parseLong(temp[5]), false, "0", "0"));
-                    eventAdded = true;
-                } else if (maxXDelta > Double.parseDouble(events.get(1)[2]) && !eventAdded && enoughTimePassed) {
-
-                    events.set(1, partOfRide);
-                    accEvents.set(1, new AccEvent(1, Double.parseDouble(partOfRide[0]), Double.parseDouble(partOfRide[1]), Long.parseLong(partOfRide[5]), false, "0", "0"));
-                    eventAdded = true;
-                }
-                // Check whether actualY is one of the top 2 events
-                else if (maxYDelta > Double.parseDouble(events.get(2)[3]) && !eventAdded && enoughTimePassed) {
-
-                    String[] temp = events.get(2);
-                    events.set(2, partOfRide);
-                    accEvents.set(2, new AccEvent(2, Double.parseDouble(partOfRide[0]), Double.parseDouble(partOfRide[1]), Long.parseLong(partOfRide[5]), false, "0", "0"));
-                    events.set(3, temp);
-                    accEvents.set(3, new AccEvent(3, Double.parseDouble(temp[0]), Double.parseDouble(temp[1]), Long.parseLong(temp[5]), false, "0", "0"));
-                    eventAdded = true;
-
-                } else if (maxYDelta > Double.parseDouble(events.get(3)[3]) && !eventAdded && enoughTimePassed) {
-                    events.set(3, partOfRide);
-                    accEvents.set(3, new AccEvent(3, Double.parseDouble(partOfRide[0]), Double.parseDouble(partOfRide[1]), Long.parseLong(partOfRide[5]), false, "0", "0"));
-                    eventAdded = true;
-                }
-                // Check whether actualZ is one of the top 2 events
-                else if (maxZDelta > Double.parseDouble(events.get(4)[4]) && !eventAdded && enoughTimePassed) {
-                    String[] temp = events.get(4);
-                    events.set(4, partOfRide);
-                    accEvents.set(4, new AccEvent(4, Double.parseDouble(partOfRide[0]), Double.parseDouble(partOfRide[1]), Long.parseLong(partOfRide[5]), false, "0", "0"));
-                    events.set(5, temp);
-                    accEvents.set(5, new AccEvent(5, Double.parseDouble(temp[0]), Double.parseDouble(temp[1]), Long.parseLong(temp[5]), false, "0", "0"));
-
-                } else if (maxZDelta > Double.parseDouble(events.get(5)[4]) && !eventAdded && enoughTimePassed) {
-                    events.set(5, partOfRide);
-                    accEvents.set(5, new AccEvent(5, Double.parseDouble(partOfRide[0]), Double.parseDouble(partOfRide[1]), Long.parseLong(partOfRide[5]), false, "0", "0"));
-                    eventAdded = true;
-                }
-
-                if (nextLine == null) {
-                    break;
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NumberFormatException e) {
-            e.printStackTrace();
-            fixRide(rideId, context);
-            Log.d(TAG,"fixed ride");
-            List<IncidentLogEntry> dummyEntryList = new ArrayList<>();
-            IncidentLogEntry dummyIncident = IncidentLogEntry.newBuilder().withDescription("startShowRouteActivity").build();
-            dummyEntryList.add(dummyIncident);
-            return new Pair<>(dummyEntryList,-1);
-        }
-
-        List<IncidentLogEntry> incidents = new ArrayList<>();
-        int key = 0;
-        for (AccEvent accEvent : accEvents) {
-            if (!(accEvent.position.getLatitude() == 999 || accEvent.position.getLatitude() == 0f)) {
-                incidents.add(IncidentLogEntry.newBuilder().withIncidentType(IncidentLogEntry.INCIDENT_TYPE.AUTO_GENERATED).withBaseInformation(accEvent.timeStamp, accEvent.position.getLatitude(), accEvent.position.getLongitude()).withKey(key++).build());
-            }
-        }
-
-        return new Pair<>(incidents,0);
-    }*/
-
     //TODO: Change this
     // Is this still needed at all?
     private static void fixRide(int rideId, Context context) {
@@ -724,25 +504,7 @@ public class Utils {
 
         return dataLogEntries;
     }
-/*
-    public static String mergeGPSandSensorLines(Queue<DataLogEntry> gpsLines, Queue<DataLogEntry> sensorLines) {
-        StringBuilder accGpsString = new StringBuilder();
 
-        while(!gpsLines.isEmpty() || !sensorLines.isEmpty()) {
-            DataLogEntry gpsLine = gpsLines.peek();
-            DataLogEntry sensorLine = sensorLines.peek();
-            long gpsTS = gpsLine != null ? gpsLine.timestamp : Long.MAX_VALUE;
-            long sensorTS = sensorLine != null ? sensorLine.timestamp : Long.MAX_VALUE;
-            if (gpsTS <= sensorTS) {
-                accGpsString.append(gpsLines.poll().stringifyDataLogEntry()).append(System.lineSeparator());
-            } else {
-                accGpsString.append(sensorLines.poll().stringifyDataLogEntry()).append(System.lineSeparator());
-            }
-        }
-
-        return accGpsString.toString();
-    }
-*/
     /**
      * calculates the nearest three regions to given location
      * @param lat Latitude of current location

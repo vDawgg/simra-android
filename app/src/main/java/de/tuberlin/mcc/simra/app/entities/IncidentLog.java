@@ -3,23 +3,13 @@ package de.tuberlin.mcc.simra.app.entities;
 import android.content.Context;
 import android.util.Log;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.SimpleTimeZone;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import de.tuberlin.mcc.simra.app.database.IncidentLogDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
-import de.tuberlin.mcc.simra.app.util.IOUtils;
-import de.tuberlin.mcc.simra.app.util.Utils;
 
 public class IncidentLog {
     //public final static String INCIDENT_LOG_HEADER = "key,lat,lon,ts,bike,childCheckBox,trailerCheckBox,pLoc,incident,i1,i2,i3,i4,i5,i6,i7,i8,i9,scary,desc,i10";
@@ -48,6 +38,7 @@ public class IncidentLog {
         return secondaryIncidentLog;
     }
 
+    //TODO: Change the name to something that actually makes sense
     public static IncidentLog loadIncidentLogFromFileOnly(int rideId, Context context) {
         return loadIncidentLogWithRideSettingsInformation(rideId, null, null, null, null, context);
     }
@@ -78,40 +69,6 @@ public class IncidentLog {
 
         return new IncidentLog(rideId, incidents, incidentLogEntries[0].nn_version);
     }
-
-    /*
-    public static IncidentLog loadIncidentLogWithRideSettingsAndBoundary(int rideId, Integer bikeType, Integer phoneLocation, Boolean childOnBoard, Boolean bikeWithTrailer, Long startTimeBoundary, Long endTimeBoundary, Context context) {
-        File incidentFile = getEventsFile(rideId, context);
-        TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
-        int nn_version = 0;
-        if (incidentFile.exists()) {
-            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(incidentFile))) {
-                // Get nn_version
-                String line = bufferedReader.readLine();
-                if (line.split("#").length>2) {
-                    nn_version = Integer.parseInt(line.split("#",-1)[2]);
-                    Log.d(TAG, "line: " + line + " nn_version: " + nn_version);
-                }
-                // Skip INCIDENT_LOG_HEADER
-                bufferedReader.readLine();
-                while ((line = bufferedReader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(line);
-                        incidentLogEntry.bikeType = bikeType;
-                        incidentLogEntry.phoneLocation = phoneLocation;
-                        incidentLogEntry.childOnBoard = childOnBoard;
-                        incidentLogEntry.bikeWithTrailer = bikeWithTrailer;
-                        if (!(incidentLogEntry.incidentType == IncidentLogEntry.INCIDENT_TYPE.FOR_RIDE_SETTINGS) && incidentLogEntry.isInTimeFrame(startTimeBoundary, endTimeBoundary)) {
-                            incidents.put(incidentLogEntry.key, incidentLogEntry);
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return new IncidentLog(rideId, incidents, nn_version);
-    }*/
 
     public static IncidentLog filterIncidentLogTime(IncidentLog incidentLog, Long startTimeBoundary, Long endTimeBoundary) {
         TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
@@ -156,16 +113,27 @@ public class IncidentLog {
             incidents.set(i, incident);
         }
 
-        SimRaDB db = SimRaDB.getDataBase(context);
-        IncidentLogDao dao = db.getIncidentLogDao();
-        dao.addOrUpdateIncidentLogEntries(incidents);
+        SimRaDB.getDataBase(context).getIncidentLogDao().addOrUpdateIncidentLogEntries(incidents);
     }
 
-    /*
-    public static void saveIncidentLog(IncidentLog incidentLog, Context context) {
-        File accEventsFile = getEventsFile(incidentLog.rideId, context);
-        Utils.overwriteFile(incidentLog.toString(), accEventsFile);
-    }*/
+    /**
+     * Returns all IncidentLogEntries of a given ride from the db
+     * @param rideId the rideId of the given ride
+     * @param context
+     * @return Array of all relevant IncidentLogEntries
+     */
+    public static IncidentLogEntry[] loadIncidentLogEntriesOfRide(int rideId, Context context) {
+        return SimRaDB.getDataBase(context).getIncidentLogDao().loadIncidentLog(rideId);
+    }
+
+    /**
+     * Deletes the incidents of a given ride from the db
+     * @param rideId the given rideId
+     * @param context
+     */
+    public static void deleteIncidentsOfRide(int rideId, Context context) {
+        SimRaDB.getDataBase(context).getIncidentLogDao().deleteEntriesOfRide(rideId);
+    }
 
     public static List<IncidentLogEntry> getScaryIncidents(IncidentLog incidentLog) {
         List<IncidentLogEntry> scaryIncidents = new ArrayList<>();
@@ -177,11 +145,7 @@ public class IncidentLog {
         return scaryIncidents;
     }
 
-    /*
-    public static File getEventsFile(Integer rideId, Context context) {
-        return new File(IOUtils.Directories.getBaseFolderPath(context) + "accEvents" + rideId + ".csv");
-    }*/
-
+    //TODO: Find out whether this is still needed!
     /*
     @Override
     public String toString() {

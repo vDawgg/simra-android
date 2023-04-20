@@ -53,43 +53,6 @@ public class DataLog {
         return loadDataLogFromDB(rideId, null, null, context);
     }
 
-    /*
-    public static DataLog loadDataLog(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
-        List<DataLogEntry> dataPoints = new ArrayList<>();
-        List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
-        long startTime = 0;
-        long endTime = 0;
-
-        File gpsLogFile = IOUtils.Files.getGPSLogFile(rideId, false, context);
-        if (gpsLogFile.exists()) {
-            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(gpsLogFile))) {
-                // Skip first two line as they do only contain the Header
-                bufferedReader.readLine();
-                bufferedReader.readLine();
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        DataLogEntry dataLogEntry = DataLogEntry.parseDataLogEntryFromLine(line);
-                        if (Utils.isInTimeFrame(startTimeBoundary, endTimeBoundary, dataLogEntry.timestamp)
-                        ) {
-                            dataPoints.add(dataLogEntry);
-                            if (dataLogEntry.longitude != null && dataLogEntry.latitude != null) {
-                                onlyGPSDataLogEntries.add(dataLogEntry);
-                            }
-                        }
-                    }
-                }
-                startTime = dataPoints.get(0).timestamp;
-                endTime = dataPoints.get(dataPoints.size() - 1).timestamp;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        RideAnalysisData rideAnalysisData = null;
-        rideAnalysisData = RideAnalysisData.calculateRideAnalysisData(onlyGPSDataLogEntries);
-        return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
-    }*/
-
     public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
@@ -121,6 +84,16 @@ public class DataLog {
     }
 
     /**
+     * Returns all DataLogEntries from the db
+     * @param rideId the rideId of the given ride
+     * @param context
+     * @return An array containing all relevant DataLogEntries
+     */
+    public static DataLogEntry[] loadDataLogEntriesOfRide(int rideId, Context context) {
+        return SimRaDB.getDataBase(context).getDataLogDao().loadAllEntriesOfRide(rideId);
+    }
+
+    /**
      * This deletes all dataLog entries of a ride that are not in the timeframe chosen with the
      * privacy slider anymore
      * @param rideId
@@ -132,21 +105,23 @@ public class DataLog {
         SimRaDB.getDataBase(context).getDataLogDao().updateDataLogBoundaries(rideId, startTime, endTime);
     }
 
-    /*
-    public static void saveDataLog(DataLog dataLog, Context context) {
-        File gpsDataLogFile = IOUtils.Files.getGPSLogFile(dataLog.rideId, false, context);
-        if (gpsDataLogFile.exists() && gpsDataLogFile.isFile()) {
-            gpsDataLogFile.delete();
-        }
-        try (BufferedWriter writer = new BufferedWriter((new FileWriter(gpsDataLogFile)))) {
-            writer.write(IOUtils.Files.getFileInfoLine() + DATA_LOG_HEADER + System.lineSeparator());
-            for (DataLogEntry dataLogEntry : dataLog.dataLogEntries) {
-                writer.write(dataLogEntry.stringifyDataLogEntry() + System.lineSeparator());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
+    /**
+     * Saves DataLogEntries from a list to the db
+     * @param entries The list of DataLogEntries
+     * @param context
+     */
+    public static void saveDataLogEntries(List<DataLogEntry> entries, Context context) {
+        SimRaDB.getDataBase(context).getDataLogDao().insertDataLogEntries(entries);
+    }
+
+    /**
+     * Deletes all DataLogEntries of a given ride
+     * @param rideId
+     * @param context
+     */
+    public static void deleteEntriesOfRide(int rideId, Context context) {
+        SimRaDB.getDataBase(context).getDataLogDao().deleteEntriesOfRide(rideId);
+    }
 
     @Override
     public String toString() {

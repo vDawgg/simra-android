@@ -48,12 +48,8 @@ import java.util.concurrent.TimeUnit;
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.annotation.IncidentPopUpActivity;
 import de.tuberlin.mcc.simra.app.annotation.MarkerFunct;
-import de.tuberlin.mcc.simra.app.database.DataLogDao;
-import de.tuberlin.mcc.simra.app.database.MetaDataDao;
-import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityShowRouteBinding;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
-import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
@@ -405,13 +401,10 @@ public class ShowRouteActivity extends BaseActivity {
             //TODO: Think about measuring here as well as this is some form of update operation
             DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this);
         }
-        // Update MetaData
 
+        // Update MetaData
         //TODO: Test this!
-        //MetaDataEntry metaDataEntry = MetaData.getMetaDataEntryForRide(rideId, this);
-        SimRaDB db = SimRaDB.getDataBase(this);
-        MetaDataDao metaDataDao = db.getMetaDataDao();
-        MetaDataEntry metaDataEntry = metaDataDao.getMetadataEntryForRide(rideId);
+        MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this);
 
         metaDataEntry.startTime = dataLog.startTime;
         metaDataEntry.endTime = dataLog.endTime;
@@ -423,8 +416,7 @@ public class ShowRouteActivity extends BaseActivity {
         metaDataEntry.state = MetaData.STATE.ANNOTATED;
 
         //TODO: Test this!
-        //MetaData.updateOrAddMetaDataEntryForRide(metaDataEntry, this);
-        metaDataDao.updateOrAddMetadataEntryForRide(metaDataEntry);
+        MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, this);
 
         Toast.makeText(this, getString(R.string.savedRide), Toast.LENGTH_SHORT).show();
         finish();
