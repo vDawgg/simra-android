@@ -21,4 +21,8 @@ public interface DataLogDao {
 
     @Query("delete from data_log_table where rideId == :rideId")
     public void deleteEntriesOfRide(Integer rideId);
+
+    @Query("delete from data_log_table where rideId == :rideId " +
+            "and (timestamp < :startTime or timestamp > :endTime)")
+    public void updateDataLogBoundaries(int rideId, long startTime, long endTime);
 }

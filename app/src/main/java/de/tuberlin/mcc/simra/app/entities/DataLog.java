@@ -120,6 +120,19 @@ public class DataLog {
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
+    /**
+     * This deletes all dataLog entries of a ride that are not in the timeframe chosen with the
+     * privacy slider anymore
+     * @param rideId
+     * @param startTime
+     * @param endTime
+     * @param context
+     */
+    public static void updateDataLogBoundaries(int rideId, long startTime, long endTime, Context context) {
+        SimRaDB.getDataBase(context).getDataLogDao().updateDataLogBoundaries(rideId, startTime, endTime);
+    }
+
+    /*
     public static void saveDataLog(DataLog dataLog, Context context) {
         File gpsDataLogFile = IOUtils.Files.getGPSLogFile(dataLog.rideId, false, context);
         if (gpsDataLogFile.exists() && gpsDataLogFile.isFile()) {
@@ -133,7 +146,7 @@ public class DataLog {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 
     @Override
     public String toString() {

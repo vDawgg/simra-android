@@ -53,6 +53,7 @@ import de.tuberlin.mcc.simra.app.database.MetaDataDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityShowRouteBinding;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
+import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
@@ -395,8 +396,15 @@ public class ShowRouteActivity extends BaseActivity {
         // Save incidents
         incidentLog = IncidentLog.filterIncidentLogUploadReady(incidentLog,bike,child == 1,trailer == 1,pLoc,false);
         IncidentLog.saveIncidentLog(incidentLog, this);
-        // Save new Route
-        DataLog.saveDataLog(dataLog, this);
+
+        // Update the route if the boundaries where changed
+        if (end != 0) {
+            long startTime = this.originalDataLog.onlyGPSDataLogEntries.get(start).timestamp;
+            long endTime = this.originalDataLog.onlyGPSDataLogEntries.get(end).timestamp;
+
+            //TODO: Think about measuring here as well as this is some form of update operation
+            DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this);
+        }
         // Update MetaData
 
         //TODO: Test this!
