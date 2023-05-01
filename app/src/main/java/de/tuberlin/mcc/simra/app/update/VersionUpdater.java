@@ -21,20 +21,32 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.Buffer;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
+
+import de.tuberlin.mcc.simra.app.entities.DataLog;
+import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
+import de.tuberlin.mcc.simra.app.entities.IncidentLog;
+import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
+import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 
 @SuppressWarnings("ALL")
 @SuppressLint("all")
 
 /**
  * Independent Package for Migrating Data between Versions.
- * This File is in an extra package in order to not depend on other App Functionality, when writing a migration do not use any Application Logic!
+ * This File is in an extra package in order to not depend on other App Functionality, when writing
+ * a migration do not use any Application Logic!
  * Why? Because Application Code might change thus breaking the Migration
  * <p>
  * DO NOT MOVE THIS FILE OR RENAME
@@ -427,6 +439,66 @@ public class VersionUpdater {
                 }
                 Legacy.Utils.overWriteFile(contentOfNewMetaData.toString(), metaDataFile.getName(), context);
 
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //TODO: Find out what the actual version will be!
+    //TODO: Think about whether the old files should get deleted or not
+    //Makes the migration from csvs to a database
+    public static void updateToV60(Context context, int lastAppVersion) {
+        //Does there need to be special handling for all other versions or are the updates incremental
+        //by default?
+
+        if (lastAppVersion < 60) {
+            File metaDataFile = new File(context.getFilesDir() + "/metaData.csv");
+            try (BufferedReader metaDataReader = new BufferedReader(new InputStreamReader(new FileInputStream(metaDataFile))))  {
+                //Parse through the metadataEntries in the metaData.csv and save them in a list
+                List<MetaDataEntry> metaDataEntries = new ArrayList<>();
+                metaDataReader.readLine();
+                String line = metaDataReader.readLine();
+                while ((line = metaDataReader.readLine()) != null) {
+                    String[] lineArray = line.split(",");
+                    int rideId = Integer.parseInt(lineArray[0]);
+
+                    //Parse through the accGps file for the rideId of the current MetaDataEntry and
+                    // save the entries in a list
+                    File accGpsFile = context.getFileStreamPath(rideId + "_accGps.csv");
+                    try (BufferedReader accGpsReader = new BufferedReader(new InputStreamReader(new FileInputStream(accGpsFile)))) {
+                        List<DataLogEntry> dataLogEntries = new ArrayList<>();
+                        String accGpsLine = accGpsReader.readLine();
+                        accGpsReader.readLine();
+                        while ((accGpsLine = accGpsReader.readLine()) != null) {
+                            dataLogEntries.add(DataLogEntry.parseDataLogEntryFromLine(accGpsLine, rideId));
+                        }
+                        DataLog.saveDataLogEntries(dataLogEntries, context);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    //Parse through the accEvents File for the rideId of the current MetaDataEntry
+                    // and save the Entries in a treemap
+                    File accEventsFile = context.getFileStreamPath("accEvents" + rideId + ".csv");
+                    try (BufferedReader accEventsReader = new BufferedReader(new InputStreamReader(new FileInputStream(accEventsFile)))) {
+                        TreeMap<Integer, IncidentLogEntry> incidentLogEntries = new TreeMap<>();
+                        String accEventsLine = accEventsReader.readLine();
+                        int nn_version = Integer.parseInt(accEventsLine.split("#", -1)[2]);
+
+                        accEventsReader.readLine();
+                        while ((accEventsLine = accEventsReader.readLine()) != null) {
+                            IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(accEventsLine);
+                            incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
+                        }
+                        IncidentLog.saveIncidentLog(new IncidentLog(rideId, incidentLogEntries, nn_version), context);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    metaDataEntries.add(MetaDataEntry.parseEntryFromLine(line));
+                }
+                MetaData.updateOrAddMetadataEntries(metaDataEntries, context);
             } catch (IOException e) {
                 e.printStackTrace();
             }

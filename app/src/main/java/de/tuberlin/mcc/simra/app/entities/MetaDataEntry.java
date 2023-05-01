@@ -31,7 +31,6 @@ public class MetaDataEntry {
         this.region = region != null ? region : 0;
     }
 
-    /*
     public static MetaDataEntry parseEntryFromLine(String string) {
         String[] dataLogLine = string.split(",", -1);
         return new MetaDataEntry(
@@ -45,7 +44,7 @@ public class MetaDataEntry {
                 Integer.parseInt(dataLogLine[7]),
                 Integer.parseInt(dataLogLine[8])
         );
-    }*/
+    }
 
 
     //This is still needed for the upload-task

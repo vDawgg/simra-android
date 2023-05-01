@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -51,7 +52,6 @@ public class Utils {
     /**
      * @return content from file with given fileName as a String
      */
-    //TODO: Check if this is still necessary?
     public static String readContentFromFile(String fileName, Context context) {
         File file = new File(IOUtils.Directories.getBaseFolderPath(context) + fileName);
         if (file.isDirectory()) {
@@ -83,11 +83,14 @@ public class Utils {
     public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
         StringBuilder content = new StringBuilder();
 
+        //TODO: Check if the headers for IncidentLog and DataLog need to be included here as well
+
         for (IncidentLogEntry incident : IncidentLog.loadIncidentLogEntriesOfRide(rideId, context)) {
             content.append(incident.stringifyDataLogEntry());
         }
 
         IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLogFromFileOnly(rideId, context), null, null, null, null, true);
+        //TODO: Check if this actually leads to the same result as in the old version!
         String dataLog = DataLog.loadDataLog(rideId, context).toString();
 
         content.append(System.lineSeparator())
@@ -175,8 +178,6 @@ public class Utils {
 
     /*
      * Uses sophisticated AI to analyze the ride
-     * */
-    //TODO: Change this!
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline(int rideId, int bike, int pLoc, Context context) {
         Log.d("DEBUG", "Trying to find acc events online");
 
@@ -190,7 +191,6 @@ public class Utils {
             HttpsURLConnection urlConnection = (HttpsURLConnection) url.openConnection();
             urlConnection.setRequestMethod("POST");
             urlConnection.setRequestProperty("Content-Type", "text/plain");
-            urlConnection.setRequestProperty("Accept","*/*");
             urlConnection.setDoOutput(true);
             urlConnection.setReadTimeout(30000);
             urlConnection.setConnectTimeout(30000);
@@ -273,12 +273,12 @@ public class Utils {
         }
 
         return new Pair<>(null,-2);
-    }
+    }*/
 
-    //TODO: Actually do this
-    public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline1(int rideId, int bike, int pLoc, Context context) {
+    //TODO: Test this!
+    public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline(int rideId, int bike, int pLoc, Context context) {
         try {
-            String responseString = "";
+            StringBuilder responseBuilder = new StringBuilder();
 
             URL url = new URL(BuildConfig.API_ENDPOINT + BuildConfig.API_VERSION + "classify-ride-cyclesense?clientHash=" + getClientHash(context)
                     + "&os=android");
@@ -292,9 +292,78 @@ public class Utils {
             urlConnection.setReadTimeout(30000);
             urlConnection.setConnectTimeout(30000);
 
+            String dataLog = DataLog.loadDataLog(rideId, context).toString();
+            byte[] outputInBytes = dataLog.getBytes(StandardCharsets.UTF_8);
 
+            //upload byteArr
+            Log.d(TAG, "send data: ");
+            try (OutputStream os = urlConnection.getOutputStream()) {
+                long startTime = System.currentTimeMillis();
+                long uploadTimeoutMS = 30000;
+                int chunkSize = 1024;
+                int chunkIndex = 0;
 
-        } catch (IOException e) { //| JSONException e) {
+                while (chunkSize * chunkIndex < outputInBytes.length) {
+                    int offset = chunkSize * chunkIndex;
+                    int remaining = outputInBytes.length - offset;
+                    os.write(outputInBytes, offset, Math.min(remaining, chunkSize));
+                    chunkIndex += 1;
+
+                    //upload timeout
+                    if(startTime + uploadTimeoutMS < System.currentTimeMillis())
+                        return null;
+                }
+
+                os.flush();
+                os.close();
+            }
+
+            // receive results
+            Log.d(TAG, "receive data: ");
+            int status = urlConnection.getResponseCode();
+            Log.d(TAG, "Server status: " + status);
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(urlConnection.getInputStream()
+                    ));
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                responseBuilder.append(inputLine);
+            }
+            in.close();
+
+            String responseString = responseBuilder.toString();
+            Log.d(TAG, "Server Message: " + responseString);
+
+            // response okay
+            if (status == 200 && responseString.length() > 1) {
+                JSONArray incidentTimestamps = new JSONArray(responseString);
+                Integer nn_version = (Integer) incidentTimestamps.remove(0); // remove first element since it is the nn_version
+                List<IncidentLogEntry> foundIncidents = new ArrayList<>();
+                DataLog allLogs = DataLog.loadDataLog(rideId, context);
+
+                // for each gps data log entries loop through the incident timestamps and create an incident at position, if the timestamps match
+                int key = 0;
+                int index = 0;
+                while (!allLogs.onlyGPSDataLogEntries.isEmpty() && incidentTimestamps.length() > 0 && index < allLogs.onlyGPSDataLogEntries.size()) {
+                    DataLogEntry gpsLine = allLogs.onlyGPSDataLogEntries.get(index);
+                    for (int i = 0; i < incidentTimestamps.length(); i++) {
+                        if(gpsLine.timestamp == incidentTimestamps.getLong(i)) {
+                            foundIncidents.add(IncidentLogEntry.newBuilder()
+                                    .withBaseInformation(gpsLine.timestamp, gpsLine.latitude, gpsLine.longitude)
+                                    .withIncidentType(IncidentLogEntry.INCIDENT_TYPE.AUTO_GENERATED)
+                                    .withKey(key++)
+                                    .withRideId(rideId)
+                                    .build());
+                            incidentTimestamps.remove(index);
+                        }
+                    }
+                    index++;
+                }
+                //TODO: Check if the nn_version is actually written to the IncidentEntries later down the line
+                // If it fails -> Do it here!
+                return new Pair<>(foundIncidents, nn_version);
+            }
+        } catch (IOException | JSONException e) {
             e.printStackTrace();
         }
 
@@ -648,6 +717,7 @@ public class Utils {
         return (!gps_enabled);
     }
 
+    //TODO: Implement using db!
     public static void prepareDebugZip(int mode,List<File> ridesAndAccEvents , Context context) {
         List<File> filesToUpload = new ArrayList<File>(ridesAndAccEvents);
         if (mode == 2) {

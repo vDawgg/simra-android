@@ -1,6 +1,8 @@
 package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
+
+import java.util.List;
 import java.util.Map;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
@@ -51,6 +53,10 @@ public class MetaData {
      */
     public static void updateOrAddMetadataEntryForRide(MetaDataEntry entry, Context context) {
         SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry);
+    }
+
+    public static void updateOrAddMetadataEntries(List<MetaDataEntry> entries, Context context) {
+        SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntries(entries);
     }
 
     public static void deleteMetadataEntryForRide(int rideId, Context context) {

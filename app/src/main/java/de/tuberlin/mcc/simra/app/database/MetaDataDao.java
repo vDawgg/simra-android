@@ -5,6 +5,8 @@ import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
+import java.util.List;
+
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import io.reactivex.Completable;
 
@@ -14,11 +16,11 @@ public interface MetaDataDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     public void updateOrAddMetadataEntryForRide(MetaDataEntry entry);
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    public void updateOrAddMetadataEntries(List<MetaDataEntry> entries);
+
     @Query("select * from metadata_table where rideId == :rideId")
     public MetaDataEntry getMetadataEntryForRide(Integer rideId);
-
-    @Query("select * from metadata_table")
-    public MetaDataEntry[] getMetaDataEntries();
 
     //TODO: Check if this is actually the right order
     @Query("select * from metadata_table order by rideId desc")

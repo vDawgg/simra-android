@@ -220,19 +220,9 @@ public class HistoryActivity extends BaseActivity {
         alert.setTitle(getString(R.string.warning));
         alert.setMessage(getString(R.string.delete_file_warning));
         alert.setPositiveButton(R.string.delete_ride_approve, (dialog, id) -> {
-            //File[] dirFiles = getFilesDir().listFiles();
-            //Log.d(TAG, "btnDelete.onClick() dirFiles: " + Arrays.deepToString(dirFiles));
             String clicked = (String) binding.listView.getItemAtPosition(position);
             Log.d(TAG, "btnDelete.onClick() clicked: " + clicked);
             clicked = clicked.replace("#", "").split(";")[0];
-            /*if (dirFiles.length != 0) {
-                for (File actualFile : dirFiles) {
-                    if (actualFile.getName().startsWith(clicked + "_") || actualFile.getName().startsWith("accEvents" + clicked)) {
-
-                        Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
-                    }
-                }
-            }*/
 
             int rideId = Integer.parseInt(clicked);
 

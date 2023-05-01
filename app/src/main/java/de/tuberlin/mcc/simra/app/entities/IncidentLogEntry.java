@@ -65,7 +65,6 @@ public class IncidentLogEntry implements Serializable {
         this.timestamp = builder.timestamp;
     }
 
-    /*
     public static IncidentLogEntry parseEntryFromLine(String string) {
         String[] dataLogLine = string.split(",", -1);
         IncidentLogEntry.Builder dataLogEntry = IncidentLogEntry.newBuilder();
@@ -105,7 +104,7 @@ public class IncidentLogEntry implements Serializable {
         );
 
         return dataLogEntry.build();
-    }*/
+    }
 
     public static IncidentLogEntry.Builder newBuilder() {
         return new IncidentLogEntry.Builder();

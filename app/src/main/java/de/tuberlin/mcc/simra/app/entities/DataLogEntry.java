@@ -92,8 +92,7 @@ public class DataLogEntry {
         this.rotationC = dataLogEntryBuilder.rotationC;
     }
 
-    /*
-    public static DataLogEntry parseDataLogEntryFromLine(String string) {
+    public static DataLogEntry parseDataLogEntryFromLine(String string, int rideId) {
         String[] dataLogLine = string.split(",", -1);
         DataLogEntryBuilder dataLogEntryBuilder = DataLogEntry.newBuilder();
 
@@ -151,8 +150,11 @@ public class DataLogEntry {
                     Float.parseFloat(dataLogLine[21])
             );
         }
+
+        dataLogEntryBuilder.withRideId(rideId);
+
         return dataLogEntryBuilder.build();
-    } */
+    }
 
     public static DataLogEntryBuilder newBuilder() {
         return new DataLogEntryBuilder();

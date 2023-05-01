@@ -27,9 +27,12 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -43,6 +46,12 @@ import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.activities.AboutActivity;
 import de.tuberlin.mcc.simra.app.activities.SettingsActivity;
+import de.tuberlin.mcc.simra.app.entities.DataLog;
+import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
+import de.tuberlin.mcc.simra.app.entities.IncidentLog;
+import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
+import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 
 import static de.tuberlin.mcc.simra.app.util.SharedPref.clearSharedPrefs;
 import static de.tuberlin.mcc.simra.app.util.SharedPref.createEntry;
@@ -190,6 +199,7 @@ public class IOUtils {
         return lastPathComponent;
     }
 
+    //TODO: Implement this using the db!
     public static void zip(List<File> files, File zipFile ) throws IOException {
         final int BUFFER_SIZE = 4096;
 
@@ -278,6 +288,83 @@ public class IOUtils {
         return true;
     }
 
+    // TODO: Test this!
+    /**
+     * Imports the files contained in the zip folder to the db (for csv) or shared prefs (for xml)
+     * @param zipUri
+     * @param context
+     * @return
+     */
+    public static boolean importSimRaDataDB(Uri zipUri, Context context) {
+        InputStream is;
+        ZipInputStream zis;
+        try {
+            is = context.getContentResolver().openInputStream(zipUri);
+            zis = new ZipInputStream(new BufferedInputStream(is));
+            ZipEntry entry;
+
+            while ((entry = zis.getNextEntry()) != null) {
+                //TODO: Find out what the suffixes for the different csv files are!
+                if (entry.getName().endsWith("_accGps.csv")) {
+                    //TODO: Check if this actually only reads the content of one file!
+                    List<String> stringList = unzipToStringList(zis);
+                    List<DataLogEntry> dataLogEntries = new ArrayList<>();
+
+                    String entryWithoutSuffix = entry.getName().replace("_accGps.csv", "");
+                    int rideId = Integer.parseInt(entryWithoutSuffix.substring(entryWithoutSuffix.length() - 1));
+
+                    for (String s : stringList) {
+                        if (s.contains("#") || s.contains("lat")) continue;
+                        dataLogEntries.add(DataLogEntry.parseDataLogEntryFromLine(s, rideId));
+                    }
+                    DataLog.saveDataLogEntries(dataLogEntries, context);
+                    continue;
+                }
+                if (entry.getName().contains("accEvents")) {
+                    List<String> stringList = unzipToStringList(zis);
+                    TreeMap<Integer, IncidentLogEntry> incidentLogEntries = new TreeMap<>();
+
+                    int nn_version = 0;
+                    String entryWithoutSuffix = entry.getName().replace(".csv", "");
+                    int rideId = Integer.parseInt(entryWithoutSuffix.substring(entryWithoutSuffix.length() - 1));
+
+                    //TODO: Fix this if there is still enough time as this is more of a shitshow than it needs to be
+                    for (String s : stringList) {
+                        if (s.split("#").length>2) {
+                            nn_version = Integer.parseInt(s.split("#",-1)[2]);
+                        }
+                        if (s.contains("key")) continue;
+                        IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(s);
+                        incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
+                    }
+                    IncidentLog incidentLog = new IncidentLog(rideId, incidentLogEntries, nn_version);
+                    IncidentLog.saveIncidentLog(incidentLog, context);
+                    continue;
+                }
+                if (entry.getName().endsWith("metaData.csv")) {
+                    List<String> stringList = unzipToStringList(zis);
+                    List<MetaDataEntry> metaDataEntries = new ArrayList<>();
+
+                    for (String s : stringList) {
+                        if (s.contains("#") || s.contains("key")) continue;
+                        metaDataEntries.add(MetaDataEntry.parseEntryFromLine(s));
+                    }
+
+                    MetaData.updateOrAddMetadataEntries(metaDataEntries, context);
+                    continue;
+                }
+                if (entry.getName().endsWith(".xml")) {
+                    File temp = new File(IOUtils.Directories.getSharedPrefsDirectory(context)+"temp.xml");
+                    loadSharePrefs(temp, zis, context);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Parses a shared preferences file (.xml) and overwrites/creates new entries in the respective
      * shared preferences file.
@@ -319,6 +406,16 @@ public class IOUtils {
             fOut.write(buffer, 0, count);
         }
         fOut.close();
+    }
+
+    private static List<String> unzipToStringList(ZipInputStream zis) throws IOException {
+        byte[] buffer = new byte[1024];
+        List<String> stringList = new ArrayList<>();
+        while (zis.read(buffer) != -1) {
+            //TODO: Should probably skip the first few entries if they only contain the header and an empty line
+            stringList.add(new String(buffer, StandardCharsets.UTF_8));
+        }
+        return stringList;
     }
 
     public static class Directories {

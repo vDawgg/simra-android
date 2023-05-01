@@ -252,6 +252,7 @@ public class SettingsActivity extends BaseActivity {
     }
 
 
+    //TODO: Implement this using the db!
     private void fireDebugPrompt() {
         androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
         File[] dirFiles = new File(getBaseFolderPath(SettingsActivity.this)).listFiles();

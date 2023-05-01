@@ -17,6 +17,7 @@ import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.database.MetaDataDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivitySingleRideStatisticsBinding;
+import de.tuberlin.mcc.simra.app.entities.MetaData;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 
@@ -41,6 +42,7 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
         context.startActivity(intent);
     }
 
+    //TODO: Implement this correctly!
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,10 +68,7 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
         rideId = getIntent().getIntExtra(EXTRA_RIDE_ID, 0);
 
         //TODO: Test this!
-        //MetaDataEntry metaDataEntry = getMetaDataEntryForRide(rideId, SingleRideStatisticsActivity.this);
-        SimRaDB db = SimRaDB.getDataBase(this);
-        MetaDataDao metaDataDao = db.getMetaDataDao();
-        MetaDataEntry metaDataEntry = metaDataDao.getMetadataEntryForRide(rideId);
+        MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this);
 
         int distanceDivider = 0;
         String distanceUnit = "";

@@ -209,10 +209,7 @@ public class UploadService extends Service {
                 }
 
                 //TODO: Test this!
-                //List<MetaDataEntry> metaDataEntries = MetaData.getMetaDataEntries(context);
-                SimRaDB db = SimRaDB.getDataBase(UploadService.this);
-                MetaDataDao metaDataDao = db.getMetaDataDao();
-                MetaDataEntry[] metaDataEntries = metaDataDao.getMetaDataEntries();
+                MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(context);
 
                 for (MetaDataEntry metaDataEntry : metaDataEntries) {
                     // found a ride which is ready to upload in metaData.csv
@@ -253,8 +250,7 @@ public class UploadService extends Service {
                             metaDataEntry.state = MetaData.STATE.SYNCED;
 
                             //TODO: Test this!
-                            //MetaData.updateOrAddMetaDataEntryForRide(metaDataEntry, context);
-                            metaDataDao.updateOrAddMetadataEntryForRide(metaDataEntry);
+                            MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, context);
 
                             //Are the metadataEntries updated automatically? Otherwise this does not
                             //make much sense
