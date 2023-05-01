@@ -9,12 +9,15 @@ import android.widget.Toast;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,14 +84,12 @@ public class IOUtils {
         }
     }
 
-    public static boolean zipTo(String sourcePath, Uri toLocation, Context ctx) {
-
+    public static boolean zipToDb(Uri toLocation, Context context) {
         final int BUFFER = 2048;
-
-        File sourceFile = new File(sourcePath);
+        byte[] buffer = new byte[BUFFER];
         try {
             BufferedInputStream origin = null;
-            DocumentFile parent = DocumentFile.fromTreeUri(ctx, toLocation);
+            DocumentFile parent = DocumentFile.fromTreeUri(context, toLocation);
             try {
                 parent.findFile("SimRa.zip").delete();
             } catch (NullPointerException ignored) {
@@ -99,30 +100,56 @@ public class IOUtils {
             if (zipFile != null) {
                 zipUri = zipFile.getUri();
             }
-            FileOutputStream dest = (FileOutputStream) ctx.getContentResolver().openOutputStream(zipUri);
+            FileOutputStream dest = (FileOutputStream) context.getContentResolver().openOutputStream(zipUri);
             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
-            if (sourceFile.isDirectory()) {
-                Log.d(TAG, "parent: " + sourceFile.getParent() + " length: " + sourceFile.getParent().length());
-                zipSubFolder(out, sourceFile, sourceFile.getParent().length(),ctx);
-            } else {
-                byte[] data = new byte[BUFFER];
-                FileInputStream fi = new FileInputStream(sourcePath);
-                origin = new BufferedInputStream(fi, BUFFER);
-                ZipEntry entry = new ZipEntry(getLastPathComponent(sourcePath));
-                entry.setTime(sourceFile.lastModified()); // to keep modification time after unzipping
-                out.putNextEntry(entry);
 
-                int count;
-                while ((count = origin.read(data, 0, BUFFER)) != -1) {
-                    out.write(data, 0, count);
-                }}
+            //Get the content of the MetaData table and create incident and DataLog files for the
+            // respective entries
+            MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(context);
+            for (MetaDataEntry me : metaDataEntries) {
+                //Create and zip the DataLog file
+                ZipEntry dataLogFile = new ZipEntry(me.rideId + "_accGps.csv");
+                out.putNextEntry(dataLogFile);
 
+                buffer = (Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                out.write(buffer, 0, buffer.length);
+                for (DataLogEntry de : DataLog.loadDataLogEntriesOfRide(me.rideId, context)) {
+                    buffer = (de.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                    out.write(buffer, 0, buffer.length);
+                }
+                out.closeEntry();
+
+                //Create and zip the IncidentLog file
+                ZipEntry incidentLogFile = new ZipEntry("accEvents" + me.rideId + ".csv");
+                out.putNextEntry(incidentLogFile);
+
+                IncidentLog incidentLog = IncidentLog.loadIncidentLogFromFileOnly(me.rideId, context);
+                buffer = (Files.getFileInfoLine(incidentLog.nn_version) + IncidentLog.INCIDENT_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                out.write(buffer, 0, buffer.length);
+                for (IncidentLogEntry ie : incidentLog.getIncidents().values()) {
+                    buffer = (ie.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                    out.write(buffer, 0, buffer.length);
+                }
+                out.closeEntry();
+            }
+            //Create and zip the MetaData file
+            ZipEntry metaDataFile = new ZipEntry("metaData.csv");
+            out.putNextEntry(metaDataFile);
+
+            buffer = (Files.getFileInfoLine() + MetaData.METADATA_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+            out.write(buffer, 0, buffer.length);
+            for (MetaDataEntry e : metaDataEntries) {
+                buffer = (e.stringifyMetaDataEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                out.write(buffer, 0, buffer.length);
+            }
+            out.closeEntry();
             out.close();
-        } catch (Exception e) {
+
+            return true;
+        } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
-        return true;
     }
 
     /*
@@ -217,60 +244,6 @@ public class IOUtils {
         }
     }
 
-    /**
-     * imports rides, settings and statistics from a previously via export created SimRa.zip file.
-     * The settings and statistics (.xml files) are being parsed and written as shared preferences.
-     * The rides, incidents, metaData and other files and folders are simply extracted as .csv files.
-     * @param zipUri The URI of SimRa.zip chosen by the file picker
-     * @param context Activity context needed to write to shared preferences
-     * @return false, if IOException is thrown, true otherwise.
-     */
-    public static boolean importSimRaData(Uri zipUri, Context context) {
-        InputStream is;
-        ZipInputStream zis;
-        try {
-            is = context.getContentResolver().openInputStream(zipUri);
-            zis = new ZipInputStream(new BufferedInputStream(is));
-            ZipEntry entry;
-
-            while ((entry = zis.getNextEntry()) != null) {
-                String entryFilePath = entry.getName().replaceFirst("/" + context.getPackageName(), "");
-                String[] entryFilePathArray = entryFilePath.split("/");
-                StringBuilder tempPath = new StringBuilder(context.getFilesDir().getParentFile().getPath());
-                for (int i = 1; i < entryFilePathArray.length; i++) {
-                    tempPath.append("/").append(entryFilePathArray[i]);
-                    // create parent directories, if not present yet
-                    if (i < entryFilePathArray.length - 1) {
-                        File folder = new File(tempPath.toString());
-                        if (!folder.exists()) {
-                            folder.mkdir();
-                        }
-                    // delete the file if it already exists. Otherwise, extract it or parse the xml.
-                    } else {
-                        File file = new File(tempPath.toString());
-                        if (file.exists()) {
-                            file.delete();
-                        }
-                        if (file.getName().endsWith(".xml")) {
-                            loadSharePrefs(file, zis, context);
-                        } else {
-                            unzipContent(file, zis);
-                        }
-                    }
-                }
-                zis.closeEntry();
-            }
-
-            zis.close();
-        }
-        catch(IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        return true;
-    }
-
     // TODO: Test this!
     /**
      * Imports the files contained in the zip folder to the db (for csv) or shared prefs (for xml)
@@ -315,9 +288,11 @@ public class IOUtils {
                     for (String s : stringList) {
                         if (s.split("#").length>2) {
                             nn_version = Integer.parseInt(s.split("#",-1)[2]);
+                            continue;
                         }
                         if (s.contains("key")) continue;
                         IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(s);
+                        Log.d("DEBUG", incidentLogEntry.stringifyDataLogEntry());
                         incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
                     }
                     IncidentLog incidentLog = new IncidentLog(rideId, incidentLogEntries, nn_version);
@@ -392,11 +367,11 @@ public class IOUtils {
     }
 
     private static List<String> unzipToStringList(ZipInputStream zis) throws IOException {
-        byte[] buffer = new byte[1024];
+        BufferedReader br = new BufferedReader(new InputStreamReader(zis));
         List<String> stringList = new ArrayList<>();
-        while (zis.read(buffer) != -1) {
-            //TODO: Should probably skip the first few entries if they only contain the header and an empty line
-            stringList.add(new String(buffer, StandardCharsets.UTF_8));
+        String line;
+        while ((line = br.readLine()) != null) {
+            stringList.add(line);
         }
         return stringList;
     }

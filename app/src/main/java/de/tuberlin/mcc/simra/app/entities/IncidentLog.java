@@ -12,7 +12,7 @@ import de.tuberlin.mcc.simra.app.database.IncidentLogDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
 public class IncidentLog {
-    //public final static String INCIDENT_LOG_HEADER = "key,lat,lon,ts,bike,childCheckBox,trailerCheckBox,pLoc,incident,i1,i2,i3,i4,i5,i6,i7,i8,i9,scary,desc,i10";
+    public final static String INCIDENT_LOG_HEADER = "key,lat,lon,ts,bike,childCheckBox,trailerCheckBox,pLoc,incident,i1,i2,i3,i4,i5,i6,i7,i8,i9,scary,desc,i10";
     public final int rideId;
     private TreeMap<Integer, IncidentLogEntry> incidents;
     public int nn_version;

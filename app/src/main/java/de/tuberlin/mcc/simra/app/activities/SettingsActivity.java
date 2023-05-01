@@ -38,8 +38,8 @@ import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.UnitHelper;
 
 import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getBaseFolderPath;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaData;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.zipTo;
+import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaDataDB;
+import static de.tuberlin.mcc.simra.app.util.IOUtils.zipToDb;
 import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZip;
 import static de.tuberlin.mcc.simra.app.util.Utils.sortFileListLastModified;
 
@@ -355,7 +355,7 @@ public class SettingsActivity extends BaseActivity {
                     new ActivityResultCallback<Uri>() {
                         @Override
                         public void onActivityResult(Uri uri) {
-                            boolean successfullyExported = zipTo(SettingsActivity.this.getFilesDir().getParent(),uri,SettingsActivity.this);
+                            boolean successfullyExported = zipToDb(uri,SettingsActivity.this);
                             if (successfullyExported) {
                                 Toast.makeText(SettingsActivity.this, R.string.exportSuccessToast, Toast.LENGTH_SHORT).show();
                             } else {
@@ -368,7 +368,7 @@ public class SettingsActivity extends BaseActivity {
                     new ActivityResultCallback<Uri>() {
                         @Override
                         public void onActivityResult(Uri uri) {
-                            boolean successfullyImported = importSimRaData(uri, SettingsActivity.this);
+                            boolean successfullyImported = importSimRaDataDB(uri, SettingsActivity.this);
                             if (successfullyImported) {
                                 Toast.makeText(SettingsActivity.this, R.string.importSuccess, Toast.LENGTH_SHORT).show();
                             } else {

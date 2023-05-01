@@ -103,6 +103,8 @@ public class IncidentLogEntry implements Serializable {
                 dataLogLine.length > 19 ? (!dataLogLine[19].isEmpty() ? dataLogLine[19].replaceAll(";linebreak;", System.lineSeparator()).replaceAll(";komma;", ",") : "") : ""
         );
 
+        dataLogEntry.withKey(Integer.parseInt(dataLogLine[0]));
+
         return dataLogEntry.build();
     }
 
