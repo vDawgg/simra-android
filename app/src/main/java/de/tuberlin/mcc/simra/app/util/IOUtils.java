@@ -1,22 +1,10 @@
 package de.tuberlin.mcc.simra.app.util;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
-import android.provider.DocumentsContract;
 import android.util.Log;
-import android.util.Xml;
 import android.widget.Toast;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xmlpull.v1.XmlPullParser;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -36,10 +24,6 @@ import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import androidx.documentfile.provider.DocumentFile;
 import de.tuberlin.mcc.simra.app.BuildConfig;
@@ -97,7 +81,7 @@ public class IOUtils {
         }
     }
 
-    public static boolean zipto(String sourcePath, Uri toLocation, Context ctx) {
+    public static boolean zipTo(String sourcePath, Uri toLocation, Context ctx) {
 
         final int BUFFER = 2048;
 
@@ -138,7 +122,6 @@ public class IOUtils {
             e.printStackTrace();
             return false;
         }
-        Toast.makeText(ctx, R.string.exportToast, Toast.LENGTH_SHORT).show();
         return true;
     }
 
