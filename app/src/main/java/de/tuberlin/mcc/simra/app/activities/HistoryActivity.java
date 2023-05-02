@@ -123,8 +123,8 @@ public class HistoryActivity extends BaseActivity {
 
         if (metaDataEntries.length > 0) {
             List<String> stringArrayList = new ArrayList<>();
-            for (int i = metaDataEntries.length-1; i >= 0; i--) {
-                stringArrayList.add(getRideString(metaDataEntries[i]));
+            for (MetaDataEntry me : metaDataEntries) {
+                stringArrayList.add(getRideString(me));
             }
 
             List<String[]> metaDataLines = new ArrayList<>();
@@ -132,10 +132,8 @@ public class HistoryActivity extends BaseActivity {
                 metaDataLines.add(entry.metaDataEntryToArray());
             }
 
-            //MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
             MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
             binding.listView.setAdapter(myAdapter);
-
         } else {
             Log.d(TAG, "Metadata table has no items");
 
@@ -187,34 +185,6 @@ public class HistoryActivity extends BaseActivity {
         return "#" + entry.rideId + ";" + datetime + ";" + todo + ";" + minutes + ";" + entry.state + ";" + Objects.requireNonNullElse(entry.distance, 0);
     }
 
-    //TODO: Find out if this is still needed!
-    /*
-    private String listToTextShape(String[] item) {
-        String todo = getString(R.string.newRideInHistoryActivity);
-
-        if (item[3].equals("1")) {
-            todo = getString(R.string.rideAnnotatedInHistoryActivity);
-        } else if (item[3].equals("2")) {
-            todo = getString(R.string.rideUploadedInHistoryActivity);
-        }
-
-        long millis = Long.parseLong(item[2]) - Long.parseLong(item[1]);
-        int minutes = Math.round((millis / 1000 / 60));
-        Date dt = new Date(Long.parseLong(item[1]));
-        Calendar localCalendar = Calendar.getInstance(TimeZone.getDefault());
-        localCalendar.setTime(dt);
-        Locale locale = Resources.getSystem().getConfiguration().locale;
-
-        SimpleDateFormat wholeDateFormat = new SimpleDateFormat(getString(R.string.datetime_format), locale);
-        String datetime = wholeDateFormat.format(dt);
-
-        if (item.length > 6) {
-            return "#" + item[0] + ";" + datetime + ";" + todo + ";" + minutes + ";" + item[3] + ";" + item[6];
-        } else {
-            return "#" + item[0] + ";" + datetime + ";" + todo + ";" + minutes + ";" + item[3] + ";" + 0;
-        }
-    }*/
-
     public void fireDeletePrompt(int position, MyArrayAdapter arrayAdapter) {
         AlertDialog.Builder alert = new AlertDialog.Builder(HistoryActivity.this);
         alert.setTitle(getString(R.string.warning));
@@ -236,6 +206,7 @@ public class HistoryActivity extends BaseActivity {
             end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Deleting dataLog took: " + (end-start) + " (in ms)");
 
+            //FIXME: Incidents do not seem to be deleted currently
             start = System.currentTimeMillis();
             IncidentLog.deleteIncidentsOfRide(rideId, this);
             end = System.currentTimeMillis();
