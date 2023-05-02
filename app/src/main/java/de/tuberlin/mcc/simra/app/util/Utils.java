@@ -38,11 +38,14 @@ import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
+import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.entities.Profile;
 
 import static de.tuberlin.mcc.simra.app.activities.ProfileActivity.startProfileActivityForChooseRegion;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getSharedPrefsDirectory;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.zip;
+import static de.tuberlin.mcc.simra.app.util.IOUtils.zipDb;
 import static de.tuberlin.mcc.simra.app.util.SimRAuthenticator.getClientHash;
 
 public class Utils {
@@ -717,16 +720,19 @@ public class Utils {
         return (!gps_enabled);
     }
 
-    //TODO: Implement using db!
-    public static void prepareDebugZip(int mode,List<File> ridesAndAccEvents , Context context) {
+    public static void prepareDebugZip(int mode, List<File> ridesAndAccEvents, Context context) {
         List<File> filesToUpload = new ArrayList<File>(ridesAndAccEvents);
+        //No option has been chosen
         if (mode == 2) {
             filesToUpload.clear();
-        } else if (mode == 1) {
+        }
+        //The second option has been chosen
+        else if (mode == 1) {
             while (filesToUpload.size()>20) {
                 filesToUpload.remove(0);
             }
         }
+        //If none of the above where triggered, the first version was chosen
         filesToUpload.add(IOUtils.Files.getMetaDataFile(context));
         filesToUpload.addAll(Arrays.asList(getSharedPrefsDirectory(context).listFiles()));
         try {
@@ -734,6 +740,24 @@ public class Utils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void prepareDebugZipDB(int mode, MetaDataEntry[] rides, Context context) {
+        List<MetaDataEntry> metaDataEntries = new ArrayList<>(Arrays.asList(rides));
+        //No option has been chosen -> do not upload rides to be sure
+        if (mode == 2) {
+            metaDataEntries.clear();
+        }
+        //The second option has been chosen
+        else if (mode == 1) {
+            //If there are more than ten rides remove rides until only ten are left for upload
+            while (metaDataEntries.size() > 10) {
+                metaDataEntries.remove(0);
+            }
+            //If there are less then ten rides the user chose not to upload any ride data
+            if (metaDataEntries.size() < 10) metaDataEntries.clear();
+        }
+        zipDb(metaDataEntries, context);
     }
 
     public static void sortFileListLastModified(List<File> fileList) {

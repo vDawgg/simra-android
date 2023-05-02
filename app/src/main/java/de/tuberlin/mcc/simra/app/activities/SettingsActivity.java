@@ -27,9 +27,13 @@ import java.util.List;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.res.TypedArrayUtils;
+
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.databinding.ActivitySettingsBinding;
+import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.services.DebugUploadService;
 import de.tuberlin.mcc.simra.app.util.BaseActivity;
 import de.tuberlin.mcc.simra.app.util.ConnectionManager;
@@ -41,6 +45,7 @@ import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getBaseFolderPa
 import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaDataDB;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.zipToDb;
 import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZip;
+import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZipDB;
 import static de.tuberlin.mcc.simra.app.util.Utils.sortFileListLastModified;
 
 
@@ -233,7 +238,7 @@ public class SettingsActivity extends BaseActivity {
                 builder.setPositiveButton(R.string.continueText, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        fireDebugPrompt();
+                        fireDebugPromptDB();
                     }
                 });
                 builder.setNegativeButton(R.string.cancel, null);
@@ -305,6 +310,39 @@ public class SettingsActivity extends BaseActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 prepareDebugZip(clicked[0], ridesAndAccEvents, SettingsActivity.this);
+                Intent intent = new Intent(SettingsActivity.this, DebugUploadService.class);
+                startService(intent);
+                // delete zip.zip after upload is finished
+                new File(IOUtils.Directories.getBaseFolderPath(SettingsActivity.this) + "zip.zip").deleteOnExit();
+            }
+        });
+        builder.setNegativeButton(R.string.cancel, null);
+        builder.show();
+    }
+
+    public void fireDebugPromptDB() {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
+        //TODO: If there is enough time make the user decide based on amount of data and not the amount of rides
+        // (This is the way it was done in the old version)
+        MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this);
+        CharSequence[] array;
+        if (metaDataEntries.length > 10) {
+            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugSend10Rides) + "Fahrten", getText(R.string.debugDoNotSendRides)};
+        }
+        else {
+            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugDoNotSendRides)};
+        }
+        final int[] clicked = {2};
+        builder.setSingleChoiceItems(array, 2, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                clicked[0] = which;
+            }
+        });
+        builder.setPositiveButton(R.string.upload, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                prepareDebugZipDB(clicked[0], metaDataEntries, SettingsActivity.this);
                 Intent intent = new Intent(SettingsActivity.this, DebugUploadService.class);
                 startService(intent);
                 // delete zip.zip after upload is finished

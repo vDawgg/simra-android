@@ -22,7 +22,6 @@ public interface MetaDataDao {
     @Query("select * from metadata_table where rideId == :rideId")
     public MetaDataEntry getMetadataEntryForRide(Integer rideId);
 
-    //TODO: Check if this is actually the right order
     @Query("select * from metadata_table order by rideId desc")
     public MetaDataEntry[] getMetadataEntriesSortedByKey();
 

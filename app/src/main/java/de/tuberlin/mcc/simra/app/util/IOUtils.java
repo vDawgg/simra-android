@@ -84,11 +84,11 @@ public class IOUtils {
         }
     }
 
+    //TODO: Add functionality for exporting the shared prefs as well!
     public static boolean zipToDb(Uri toLocation, Context context) {
         final int BUFFER = 2048;
         byte[] buffer = new byte[BUFFER];
         try {
-            BufferedInputStream origin = null;
             DocumentFile parent = DocumentFile.fromTreeUri(context, toLocation);
             try {
                 parent.findFile("SimRa.zip").delete();
@@ -141,6 +141,23 @@ public class IOUtils {
             for (MetaDataEntry e : metaDataEntries) {
                 buffer = (e.stringifyMetaDataEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                 out.write(buffer, 0, buffer.length);
+            }
+
+            //Zip the shared prefs files
+            File sharedPrefsDirectory = Directories.getSharedPrefsDirectory(context);
+            File[] sharedPrefs = sharedPrefsDirectory.listFiles();
+            if (sharedPrefs != null) {
+                for (File f : Directories.getSharedPrefsDirectory(context).listFiles()) {
+                    FileInputStream fi = new FileInputStream(f);
+                    BufferedInputStream origin = new BufferedInputStream(fi, BUFFER);
+                    ZipEntry zipEntry = new ZipEntry(f.getName());
+                    out.putNextEntry(zipEntry);
+
+                    int count;
+                    while ((count = origin.read(buffer, 0, BUFFER)) != -1) {
+                        out.write(buffer, 0, count);
+                    }
+                }
             }
             out.closeEntry();
             out.close();
@@ -241,6 +258,73 @@ public class IOUtils {
                     origin.close();
                 }
             }
+        }
+    }
+
+    //TODO: Merge similar components to zipToDb into a seperate function or use this function in zipToDB
+    public static void zipDb(List<MetaDataEntry> metaDataEntries, Context context) {
+        int BUFFER = 2048;
+        byte[] buffer = new byte[BUFFER];
+        try {
+            FileOutputStream dest = new FileOutputStream(Directories.getBaseFolderPath(context) + "zip.zip");
+            ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
+            for (MetaDataEntry me : metaDataEntries) {
+                //Create and zip the DataLog file
+                ZipEntry dataLogFile = new ZipEntry(me.rideId + "_accGps.csv");
+                out.putNextEntry(dataLogFile);
+
+                buffer = (Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                out.write(buffer, 0, buffer.length);
+                for (DataLogEntry de : DataLog.loadDataLogEntriesOfRide(me.rideId, context)) {
+                    buffer = (de.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                    out.write(buffer, 0, buffer.length);
+                }
+                out.closeEntry();
+
+                //Create and zip the IncidentLog file
+                ZipEntry incidentLogFile = new ZipEntry("accEvents" + me.rideId + ".csv");
+                out.putNextEntry(incidentLogFile);
+
+                IncidentLog incidentLog = IncidentLog.loadIncidentLogFromFileOnly(me.rideId, context);
+                buffer = (Files.getFileInfoLine(incidentLog.nn_version) + IncidentLog.INCIDENT_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                out.write(buffer, 0, buffer.length);
+                for (IncidentLogEntry ie : incidentLog.getIncidents().values()) {
+                    buffer = (ie.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                    out.write(buffer, 0, buffer.length);
+                }
+                out.closeEntry();
+            }
+            //Create and zip the MetaData file
+            ZipEntry metaDataFile = new ZipEntry("metaData.csv");
+            out.putNextEntry(metaDataFile);
+
+            buffer = (Files.getFileInfoLine() + MetaData.METADATA_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+            out.write(buffer, 0, buffer.length);
+            for (MetaDataEntry e : metaDataEntries) {
+                buffer = (e.stringifyMetaDataEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+                out.write(buffer, 0, buffer.length);
+            }
+
+            //Zip the shared prefs files
+            File sharedPrefsDirectory = Directories.getSharedPrefsDirectory(context);
+            File[] sharedPrefs = sharedPrefsDirectory.listFiles();
+            if (sharedPrefs != null) {
+                for (File f : Directories.getSharedPrefsDirectory(context).listFiles()) {
+                    FileInputStream fi = new FileInputStream(f);
+                    BufferedInputStream origin = new BufferedInputStream(fi, BUFFER);
+                    ZipEntry zipEntry = new ZipEntry(f.getName());
+                    out.putNextEntry(zipEntry);
+
+                    int count;
+                    while ((count = origin.read(buffer, 0, buffer.length)) != -1) {
+                        out.write(buffer, 0, count);
+                    }
+                }
+            }
+            out.closeEntry();
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
