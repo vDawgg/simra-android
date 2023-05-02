@@ -445,14 +445,12 @@ public class VersionUpdater {
         }
     }
 
-    //TODO: Find out what the actual version will be!
-    //TODO: Think about whether the old files should get deleted or not
     //Makes the migration from csvs to a database
-    public static void updateToV60(Context context, int lastAppVersion) {
+    public static void updateToV93(Context context, int lastAppVersion) {
         //Does there need to be special handling for all other versions or are the updates incremental
         //by default?
 
-        if (lastAppVersion < 60) {
+        if (lastAppVersion < 93) {
             File metaDataFile = new File(context.getFilesDir() + "/metaData.csv");
             try (BufferedReader metaDataReader = new BufferedReader(new InputStreamReader(new FileInputStream(metaDataFile))))  {
                 //Parse through the metadataEntries in the metaData.csv and save them in a list
@@ -464,7 +462,7 @@ public class VersionUpdater {
                     int rideId = Integer.parseInt(lineArray[0]);
 
                     //Parse through the accGps file for the rideId of the current MetaDataEntry and
-                    // save the entries in a list
+                    // write the entries to the db
                     File accGpsFile = context.getFileStreamPath(rideId + "_accGps.csv");
                     try (BufferedReader accGpsReader = new BufferedReader(new InputStreamReader(new FileInputStream(accGpsFile)))) {
                         List<DataLogEntry> dataLogEntries = new ArrayList<>();
@@ -474,12 +472,13 @@ public class VersionUpdater {
                             dataLogEntries.add(DataLogEntry.parseDataLogEntryFromLine(accGpsLine, rideId));
                         }
                         DataLog.saveDataLogEntries(dataLogEntries, context);
+                        accGpsFile.delete();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
                     //Parse through the accEvents File for the rideId of the current MetaDataEntry
-                    // and save the Entries in a treemap
+                    // and writ
                     File accEventsFile = context.getFileStreamPath("accEvents" + rideId + ".csv");
                     try (BufferedReader accEventsReader = new BufferedReader(new InputStreamReader(new FileInputStream(accEventsFile)))) {
                         TreeMap<Integer, IncidentLogEntry> incidentLogEntries = new TreeMap<>();
@@ -492,13 +491,16 @@ public class VersionUpdater {
                             incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
                         }
                         IncidentLog.saveIncidentLog(new IncidentLog(rideId, incidentLogEntries, nn_version), context);
+                        accEventsFile.delete();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
                     metaDataEntries.add(MetaDataEntry.parseEntryFromLine(line));
+                    MetaData.updateOrAddMetadataEntries(metaDataEntries, context);
+
+                    metaDataFile.delete();
                 }
-                MetaData.updateOrAddMetadataEntries(metaDataEntries, context);
             } catch (IOException e) {
                 e.printStackTrace();
             }
