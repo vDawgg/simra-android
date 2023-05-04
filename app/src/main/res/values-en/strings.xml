@@ -209,7 +209,7 @@
     <string name="englishDate">mm/dd/yy, hh:mm (AM/PM)</string>
     <string name="devices">Devices</string>
     <string name="debugPromptTitle1">Send local app data to the SimRa team?</string>
-    <string name="debugButtonText">Attention! Only tap the Continue button, if you were asked to do so by the SimRa team. By pressing the Upload button in the next step, you send your SimRa configuration to the SimRa team. You can also specify to upload the last 10 rides or all rides.</string>
+    <string name="debugButtonText">Attention! Only tap the Continue button, if you were asked to do so by the SimRa team. By pressing the Upload button in the next step, you send your SimRa configuration to the SimRa team. You can specify wether you wish to upload all or no rides. We recommend to use a wifi connection for the upload as the amount of data can get quite large depending on the amount of saved rides.</string>
     <string name="continueText">Continue</string>
     <string name="debugPromptTitle2">Do you also want to send rides?</string>
     <string name="debugSendAllRides">Yes, all</string>

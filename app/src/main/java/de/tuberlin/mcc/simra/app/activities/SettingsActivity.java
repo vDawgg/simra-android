@@ -322,16 +322,9 @@ public class SettingsActivity extends BaseActivity {
 
     public void fireDebugPromptDB() {
         androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
-        //TODO: If there is enough time make the user decide based on amount of data and not the amount of rides
-        // (This is the way it was done in the old version)
-        MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this);
+        MetaDataEntry[] metaDataEntries = MetaData.getMetaDataEntriesLastModifies(this);
         CharSequence[] array;
-        if (metaDataEntries.length > 10) {
-            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugSend10Rides) + "Fahrten", getText(R.string.debugDoNotSendRides)};
-        }
-        else {
-            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugDoNotSendRides)};
-        }
+        array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugDoNotSendRides)};
         final int[] clicked = {2};
         builder.setSingleChoiceItems(array, 2, new DialogInterface.OnClickListener() {
             @Override

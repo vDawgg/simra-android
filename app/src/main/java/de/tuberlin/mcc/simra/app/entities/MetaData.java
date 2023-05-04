@@ -47,6 +47,15 @@ public class MetaData {
     }
 
     /**
+     * Returns all MetaDataEntries sorted by the date they were last modified in descending order
+     * @param context
+     * @return
+     */
+    public static MetaDataEntry[] getMetaDataEntriesLastModifies(Context context) {
+        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesLastModified();
+    }
+
+    /**
      * Updates a given MetadataEntry if it exists. If not a new entry is added to the db
      * @param entry the MetadataEntry
      * @param context
@@ -55,10 +64,20 @@ public class MetaData {
         SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry);
     }
 
+    /**
+     * Updates or adds multiple MetaDataEntries
+     * @param entries
+     * @param context
+     */
     public static void updateOrAddMetadataEntries(List<MetaDataEntry> entries, Context context) {
         SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntries(entries);
     }
 
+    /**
+     * Delete the MetaDataEntry for the given rideId
+     * @param rideId the rideId for the MetaDataEntry to be deleted
+     * @param context
+     */
     public static void deleteMetadataEntryForRide(int rideId, Context context) {
         SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId);
     }

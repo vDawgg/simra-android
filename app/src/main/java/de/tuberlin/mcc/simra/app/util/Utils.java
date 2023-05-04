@@ -744,19 +744,7 @@ public class Utils {
 
     public static void prepareDebugZipDB(int mode, MetaDataEntry[] rides, Context context) {
         List<MetaDataEntry> metaDataEntries = new ArrayList<>(Arrays.asList(rides));
-        //No option has been chosen -> do not upload rides to be sure
-        if (mode == 2) {
-            metaDataEntries.clear();
-        }
-        //The second option has been chosen
-        else if (mode == 1) {
-            //If there are more than ten rides remove rides until only ten are left for upload
-            while (metaDataEntries.size() > 10) {
-                metaDataEntries.remove(0);
-            }
-            //If there are less then ten rides the user chose not to upload any ride data
-            if (metaDataEntries.size() < 10) metaDataEntries.clear();
-        }
+        if (mode == 2 || mode == 1) metaDataEntries.clear();
         zipDb(metaDataEntries, context);
     }
 

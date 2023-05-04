@@ -403,7 +403,6 @@ public class ShowRouteActivity extends BaseActivity {
         }
 
         // Update MetaData
-        //TODO: Test this!
         MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this);
 
         metaDataEntry.startTime = dataLog.startTime;
@@ -414,8 +413,8 @@ public class ShowRouteActivity extends BaseActivity {
         metaDataEntry.numberOfScaryIncidents = IncidentLog.getScaryIncidents(incidentLog).size();
         metaDataEntry.region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
         metaDataEntry.state = MetaData.STATE.ANNOTATED;
+        metaDataEntry.lastModified = System.currentTimeMillis();
 
-        //TODO: Test this!
         MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, this);
 
         Toast.makeText(this, getString(R.string.savedRide), Toast.LENGTH_SHORT).show();

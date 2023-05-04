@@ -367,7 +367,7 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
 
             start = System.currentTimeMillis();
-            MetaData.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
+            MetaData.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region, System.currentTimeMillis()), this);
             end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Writing metaDataLog took: " + (end-start) + " (in ms)");
 

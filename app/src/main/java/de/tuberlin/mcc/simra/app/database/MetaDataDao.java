@@ -25,6 +25,9 @@ public interface MetaDataDao {
     @Query("select * from metadata_table order by rideId desc")
     public MetaDataEntry[] getMetadataEntriesSortedByKey();
 
+    @Query("select * from metadata_table order by lastModified desc")
+    public MetaDataEntry[] getMetadataEntriesLastModified();
+
     @Query("delete from metadata_table where rideId == :rideId")
     public void deleteMetadataEntryForRide(Integer rideId);
 }
