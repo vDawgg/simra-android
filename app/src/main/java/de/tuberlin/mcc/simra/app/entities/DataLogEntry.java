@@ -15,7 +15,6 @@ public class DataLogEntry {
 
     @NonNull
     public final Integer rideId;
-    //TODO: Find out which of the columns should be NonNull or final?
     public final Double latitude;
     public final Double longitude;
     public final Float accelerometerX;

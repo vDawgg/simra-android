@@ -14,7 +14,7 @@ import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 
-@Database(entities = {DataLogEntry.class, MetaDataEntry.class, IncidentLogEntry.class}, version = 2, exportSchema = false)
+@Database(entities = {DataLogEntry.class, MetaDataEntry.class, IncidentLogEntry.class}, version = 1)
 public abstract class SimRaDB extends RoomDatabase {
 
     public abstract DataLogDao getDataLogDao();

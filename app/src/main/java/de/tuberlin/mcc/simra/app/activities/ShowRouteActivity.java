@@ -39,7 +39,6 @@ import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Polyline;
 import org.osmdroid.views.overlay.infowindow.InfoWindow;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -87,7 +86,6 @@ public class ShowRouteActivity extends BaseActivity {
     int trailer;
     int pLoc;
     int rideId;
-    File gpsFile;
     Polyline route;
     Polyline editableRoute;
     int routeSize = 3;
@@ -195,8 +193,6 @@ public class ShowRouteActivity extends BaseActivity {
             SingleRideStatisticsActivity.startSingeRideStatisticsActivity(rideId,ShowRouteActivity.this);
         });
 
-        gpsFile = IOUtils.Files.getGPSLogFile(rideId, false, this);
-
         bike = SharedPref.Settings.Ride.BikeType.getBikeType(this);
         child = SharedPref.Settings.Ride.ChildOnBoard.getValue(this);
         trailer = SharedPref.Settings.Ride.BikeWithTrailer.getValue(this);
@@ -262,7 +258,6 @@ public class ShowRouteActivity extends BaseActivity {
 
     }
 
-    //TODO: Redo this!
     private void refreshRoute(int rideId, boolean updateBoundaries, boolean calculateEvents) {
 
         if (updateBoundaries && dataLog != null) {
@@ -398,8 +393,10 @@ public class ShowRouteActivity extends BaseActivity {
             long startTime = this.originalDataLog.onlyGPSDataLogEntries.get(start).timestamp;
             long endTime = this.originalDataLog.onlyGPSDataLogEntries.get(end).timestamp;
 
-            //TODO: Think about measuring here as well as this is some form of update operation
+            long start = System.currentTimeMillis();
             DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this);
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Updating DataLog took: "+(end-start)+" ms");
         }
 
         // Update MetaData
@@ -619,7 +616,6 @@ public class ShowRouteActivity extends BaseActivity {
         protected void onPreExecute() {
             super.onPreExecute();
             binding.loadingAnimationLayout.setVisibility(View.VISIBLE);
-
         }
 
         @Override

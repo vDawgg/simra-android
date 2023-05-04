@@ -23,8 +23,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
@@ -38,13 +36,10 @@ import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
-import de.tuberlin.mcc.simra.app.entities.MetaData;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.entities.Profile;
 
 import static de.tuberlin.mcc.simra.app.activities.ProfileActivity.startProfileActivityForChooseRegion;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getSharedPrefsDirectory;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.zip;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.zipDb;
 import static de.tuberlin.mcc.simra.app.util.SimRAuthenticator.getClientHash;
 
@@ -86,20 +81,22 @@ public class Utils {
     public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
         StringBuilder content = new StringBuilder();
 
-        //TODO: Check if the headers for IncidentLog and DataLog need to be included here as well
-
-        for (IncidentLogEntry incident : IncidentLog.loadIncidentLogEntriesOfRide(rideId, context)) {
-            content.append(incident.stringifyDataLogEntry());
+        IncidentLogEntry[] incidentLogEntries = IncidentLog.loadIncidentLogEntriesOfRide(rideId, context);
+        content.append(IOUtils.Files.getFileInfoLine(incidentLogEntries[0].nn_version))
+                .append(IncidentLog.INCIDENT_LOG_HEADER)
+                .append(System.lineSeparator());
+        for (IncidentLogEntry incident : incidentLogEntries) {
+            content.append(incident.stringifyDataLogEntry()).append(System.lineSeparator());
         }
 
-        IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLogFromFileOnly(rideId, context), null, null, null, null, true);
-        //TODO: Check if this actually leads to the same result as in the old version!
+        IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLog(rideId, context), null, null, null, null, true);
         String dataLog = DataLog.loadDataLog(rideId, context).toString();
 
-        content.append(System.lineSeparator())
-                .append("=========================")
+        content.append("=========================")
                 .append(System.lineSeparator())
                 .append(dataLog);
+
+        Log.d("DEBUG", "Consolidated ride for upload:\n"+content.toString());
 
         return new Pair<>(content.toString(), incidentLog);
     }
@@ -179,106 +176,7 @@ public class Utils {
         }
     }
 
-    /*
-     * Uses sophisticated AI to analyze the ride
-    public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline(int rideId, int bike, int pLoc, Context context) {
-        Log.d("DEBUG", "Trying to find acc events online");
-
-        try {
-            String responseString = "";
-
-            URL url = new URL(BuildConfig.API_ENDPOINT + BuildConfig.API_VERSION + "classify-ride-cyclesense?clientHash=" + getClientHash(context)
-                    + "&os=android");
-
-            Log.d(TAG, "URL for AI-Backend: " + url.toString());
-            HttpsURLConnection urlConnection = (HttpsURLConnection) url.openConnection();
-            urlConnection.setRequestMethod("POST");
-            urlConnection.setRequestProperty("Content-Type", "text/plain");
-            urlConnection.setDoOutput(true);
-            urlConnection.setReadTimeout(30000);
-            urlConnection.setConnectTimeout(30000);
-
-            //Read log file in to byte Array
-            File rideFile = IOUtils.Files.getGPSLogFile(rideId, false, context);
-            FileInputStream fileInputStream = new FileInputStream(rideFile);
-            long byteLength = rideFile.length();
-
-            byte[] fileContent = new byte[(int) byteLength];
-            fileInputStream.read(fileContent, 0, (int) byteLength);
-
-            //upload byteArr
-            Log.d(TAG, "send data: ");
-            try (OutputStream os = urlConnection.getOutputStream()) {
-                long startTime = System.currentTimeMillis();
-                long uploadTimeoutMS = 30000;
-                int chunkSize = 1024;
-                int chunkIndex = 0;
-
-                while (chunkSize * chunkIndex < fileContent.length) {
-                    int offset = chunkSize * chunkIndex;
-                    int remaining = fileContent.length - offset;
-                    os.write(fileContent, offset, remaining > chunkSize ? chunkSize : remaining);
-                    chunkIndex += 1;
-
-                    //upload timeout
-                    if(startTime + uploadTimeoutMS < System.currentTimeMillis())
-                        return null;
-                }
-
-                os.flush();
-                os.close();
-            }
-
-            // receive results
-            Log.d(TAG, "receive data: ");
-            int status = urlConnection.getResponseCode();
-            Log.d(TAG, "Server status: " + status);
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(urlConnection.getInputStream()
-                    ));
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                responseString += inputLine;
-            }
-            in.close();
-
-            Log.d(TAG, "Server Message: " + responseString);
-
-            // response okay
-            if (status == 200 && responseString.length() > 1) {
-                JSONArray incidentTimestamps = new JSONArray(responseString);
-                Integer nn_version = (Integer) incidentTimestamps.remove(0); // remove first element since it is the nn_version
-                List<IncidentLogEntry> foundIncidents = new ArrayList<>();
-                DataLog allLogs = DataLog.loadDataLog(rideId, context);
-
-                // for each gps data log entries loop through the incident timestamps and create an incident at position, if the timestamps match
-                int key = 0;
-                int index = 0;
-                while (!allLogs.onlyGPSDataLogEntries.isEmpty() && incidentTimestamps.length() > 0 && index < allLogs.onlyGPSDataLogEntries.size()) {
-                    DataLogEntry gpsLine = allLogs.onlyGPSDataLogEntries.get(index);
-                    for (int i = 0; i < incidentTimestamps.length(); i++) {
-                        if(gpsLine.timestamp == incidentTimestamps.getLong(i)) {
-                            foundIncidents.add(IncidentLogEntry.newBuilder()
-                                    .withBaseInformation(gpsLine.timestamp, gpsLine.latitude, gpsLine.longitude)
-                                    .withIncidentType(IncidentLogEntry.INCIDENT_TYPE.AUTO_GENERATED)
-                                    .withKey(key++)
-                                    .build());
-                            incidentTimestamps.remove(index);
-                        }
-                    }
-                    index++;
-                }
-                return new Pair<>(foundIncidents, nn_version);
-            }
-
-        } catch (IOException | JSONException e) {
-            e.printStackTrace();
-        }
-
-        return new Pair<>(null,-2);
-    }*/
-
-    //TODO: Test this!
+     // Uses sophisticated AI to analyze the ride
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventOnline(int rideId, int bike, int pLoc, Context context) {
         try {
             StringBuilder responseBuilder = new StringBuilder();
@@ -364,6 +262,9 @@ public class Utils {
                 }
                 //TODO: Check if the nn_version is actually written to the IncidentEntries later down the line
                 // If it fails -> Do it here!
+                Log.d("DEBUG", "Why is the second version not showing????");
+                Log.d("DEBUG", "Incidents obtained online: "+foundIncidents);
+                Log.d("DEBUG", "nn_version obtained online: "+nn_version);
                 return new Pair<>(foundIncidents, nn_version);
             }
         } catch (IOException | JSONException e) {
@@ -373,8 +274,6 @@ public class Utils {
         return new Pair<>(null, -2);
     }
 
-
-    //TODO: Check if error handling actually needs to be implemented here!
     //TODO: Change all occurences of Accevent to IncidentLogEntry instead! -> This should also make it
     // possible to delete Accevent alltogether
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
@@ -530,33 +429,6 @@ public class Utils {
         Log.d("DEBUG", "nn_version of return: "+r.second);
 
         return new Pair<>(incidents,0);
-    }
-
-    //TODO: Change this
-    // Is this still needed at all?
-    private static void fixRide(int rideId, Context context) {
-        try {
-            StringBuilder fixedRideContent = new StringBuilder();
-            BufferedReader br = new BufferedReader(new FileReader(IOUtils.Files.getGPSLogFile(rideId, false, context)));
-            String line = br.readLine(); // fileInfo line
-            fixedRideContent.append(line).append(System.lineSeparator());
-            line = br.readLine(); // csv header
-            fixedRideContent.append(line).append(System.lineSeparator());
-            // skip to first GPS Line
-            while ((line = br.readLine()) != null) {
-                if (!line.startsWith(",,")){
-                    break;
-                }
-            }
-            fixedRideContent.append(line).append(System.lineSeparator());
-            while ((line = br.readLine()) != null) {
-                fixedRideContent.append(line).append(System.lineSeparator());
-            }
-            overwriteFile(fixedRideContent.toString(),IOUtils.Files.getGPSLogFile(rideId, false, context));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
     }
 
     public static List<DataLogEntry> mergeGPSAndSensor(Queue<DataLogEntry> gpsLines, Queue<DataLogEntry> sensorLines) {
@@ -720,48 +592,10 @@ public class Utils {
         return (!gps_enabled);
     }
 
-    public static void prepareDebugZip(int mode, List<File> ridesAndAccEvents, Context context) {
-        List<File> filesToUpload = new ArrayList<File>(ridesAndAccEvents);
-        //No option has been chosen
-        if (mode == 2) {
-            filesToUpload.clear();
-        }
-        //The second option has been chosen
-        else if (mode == 1) {
-            while (filesToUpload.size()>20) {
-                filesToUpload.remove(0);
-            }
-        }
-        //If none of the above where triggered, the first version was chosen
-        filesToUpload.add(IOUtils.Files.getMetaDataFile(context));
-        filesToUpload.addAll(Arrays.asList(getSharedPrefsDirectory(context).listFiles()));
-        try {
-            zip(filesToUpload,new File(IOUtils.Directories.getBaseFolderPath(context) + "zip.zip"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     public static void prepareDebugZipDB(int mode, MetaDataEntry[] rides, Context context) {
         List<MetaDataEntry> metaDataEntries = new ArrayList<>(Arrays.asList(rides));
         if (mode == 2 || mode == 1) metaDataEntries.clear();
         zipDb(metaDataEntries, context);
-    }
-
-    public static void sortFileListLastModified(List<File> fileList) {
-        Collections.sort(fileList, new Comparator<File>() {
-            @Override
-            public int compare(File file1, File file2) {
-                long k = file1.lastModified() - file2.lastModified();
-                if(k > 0){
-                    return 1;
-                }else if(k == 0){
-                    return 0;
-                }else{
-                    return -1;
-                }
-            }
-        });
     }
 
     /**

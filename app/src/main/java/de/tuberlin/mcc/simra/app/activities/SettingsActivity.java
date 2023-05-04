@@ -20,14 +20,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.content.res.TypedArrayUtils;
 
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
@@ -41,13 +37,9 @@ import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.UnitHelper;
 
-import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getBaseFolderPath;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaDataDB;
 import static de.tuberlin.mcc.simra.app.util.IOUtils.zipToDb;
-import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZip;
 import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZipDB;
-import static de.tuberlin.mcc.simra.app.util.Utils.sortFileListLastModified;
-
 
 public class SettingsActivity extends BaseActivity {
 
@@ -260,64 +252,6 @@ public class SettingsActivity extends BaseActivity {
     protected void onPause() {
         super.onPause();
         this.unregisterReceiver(br);
-    }
-
-
-    //TODO: Implement this using the db!
-    private void fireDebugPrompt() {
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
-        File[] dirFiles = new File(getBaseFolderPath(SettingsActivity.this)).listFiles();
-        List<File> files = new ArrayList<File>(Arrays.asList(dirFiles));
-        List<File> ridesAndAccEvents = new ArrayList<>();
-        sortFileListLastModified(files);
-        double sizeAllInMB = 0;
-        double size10InMB = 0;
-        int i10 = 0;
-        for (int i = 0; i < files.size(); i++) {
-            File file = files.get(i);
-            if (file.getName().contains("accGps")) {
-                int id = Integer.parseInt(file.getName().split("_")[0]);
-                String path = file.getParent() + File.separator + "accEvents" + id + ".csv";
-                File accEvents = new File(path);
-                sizeAllInMB += file.length() / 1024.0 / 1024.0;
-                ridesAndAccEvents.add(file);
-                if (accEvents.exists()) {
-                    sizeAllInMB += accEvents.length() / 1024.0 / 1024.0;
-                    ridesAndAccEvents.add(accEvents);
-                }
-                if (i10 < 10) {
-                    size10InMB = sizeAllInMB;
-                    i10++;
-                }
-            }
-        }
-        sizeAllInMB = Math.round(sizeAllInMB / 3.0 * 100.0) / 100.0;
-        size10InMB = Math.round(size10InMB / 3.0 * 100.0) / 100.0;
-        final int[] clicked = {2};
-        CharSequence[] array;
-        if (files.size() > 10) {
-            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + sizeAllInMB + " MB)", getText(R.string.debugSend10Rides) + " (" + size10InMB + " MB)", getText(R.string.debugDoNotSendRides)};
-        } else {
-            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + sizeAllInMB + " MB)", getText(R.string.debugDoNotSendRides)};
-        }
-        builder.setSingleChoiceItems(array, 2, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                clicked[0] = which;
-            }
-        });
-        builder.setPositiveButton(R.string.upload, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                prepareDebugZip(clicked[0], ridesAndAccEvents, SettingsActivity.this);
-                Intent intent = new Intent(SettingsActivity.this, DebugUploadService.class);
-                startService(intent);
-                // delete zip.zip after upload is finished
-                new File(IOUtils.Directories.getBaseFolderPath(SettingsActivity.this) + "zip.zip").deleteOnExit();
-            }
-        });
-        builder.setNegativeButton(R.string.cancel, null);
-        builder.show();
     }
 
     public void fireDebugPromptDB() {

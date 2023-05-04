@@ -8,7 +8,6 @@ import androidx.room.Query;
 import java.util.List;
 
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
-import io.reactivex.Completable;
 
 @Dao
 public interface DataLogDao {

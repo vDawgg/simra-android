@@ -4,15 +4,12 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -20,9 +17,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -30,9 +25,6 @@ import java.util.zip.ZipOutputStream;
 
 import androidx.documentfile.provider.DocumentFile;
 import de.tuberlin.mcc.simra.app.BuildConfig;
-import de.tuberlin.mcc.simra.app.R;
-import de.tuberlin.mcc.simra.app.activities.AboutActivity;
-import de.tuberlin.mcc.simra.app.activities.SettingsActivity;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
@@ -84,7 +76,6 @@ public class IOUtils {
         }
     }
 
-    //TODO: Add functionality for exporting the shared prefs as well!
     public static boolean zipToDb(Uri toLocation, Context context) {
         final int BUFFER = 2048;
         byte[] buffer = new byte[BUFFER];
@@ -117,19 +108,21 @@ public class IOUtils {
                     buffer = (de.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                     out.write(buffer, 0, buffer.length);
                 }
+                dataLogFile.setTime(me.lastModified);
                 out.closeEntry();
 
                 //Create and zip the IncidentLog file
                 ZipEntry incidentLogFile = new ZipEntry("accEvents" + me.rideId + ".csv");
                 out.putNextEntry(incidentLogFile);
 
-                IncidentLog incidentLog = IncidentLog.loadIncidentLogFromFileOnly(me.rideId, context);
+                IncidentLog incidentLog = IncidentLog.loadIncidentLog(me.rideId, context);
                 buffer = (Files.getFileInfoLine(incidentLog.nn_version) + IncidentLog.INCIDENT_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                 out.write(buffer, 0, buffer.length);
                 for (IncidentLogEntry ie : incidentLog.getIncidents().values()) {
                     buffer = (ie.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                     out.write(buffer, 0, buffer.length);
                 }
+                incidentLogFile.setTime(me.lastModified);
                 out.closeEntry();
             }
             //Create and zip the MetaData file
@@ -142,24 +135,28 @@ public class IOUtils {
                 buffer = (e.stringifyMetaDataEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                 out.write(buffer, 0, buffer.length);
             }
+            metaDataFile.setTime(metaDataEntries[metaDataEntries.length-1].lastModified);
+            out.closeEntry();
 
             //Zip the shared prefs files
             File sharedPrefsDirectory = Directories.getSharedPrefsDirectory(context);
             File[] sharedPrefs = sharedPrefsDirectory.listFiles();
             if (sharedPrefs != null) {
                 for (File f : Directories.getSharedPrefsDirectory(context).listFiles()) {
+                    Log.d("DEBUG", "File name: "+f.getName());
                     FileInputStream fi = new FileInputStream(f);
                     BufferedInputStream origin = new BufferedInputStream(fi, BUFFER);
                     ZipEntry zipEntry = new ZipEntry(f.getName());
                     out.putNextEntry(zipEntry);
 
                     int count;
-                    while ((count = origin.read(buffer, 0, BUFFER)) != -1) {
+                    while ((count = fi.read(buffer)) >= 0) {
                         out.write(buffer, 0, count);
                     }
+                    zipEntry.setTime(f.lastModified());
+                    out.closeEntry();
                 }
             }
-            out.closeEntry();
             out.close();
 
             return true;
@@ -226,42 +223,7 @@ public class IOUtils {
         return lastPathComponent;
     }
 
-    //TODO: Implement this using the db!
-    public static void zip(List<File> files, File zipFile ) throws IOException {
-        final int BUFFER_SIZE = 4096;
-
-        BufferedInputStream origin;
-
-        try (ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipFile)))) {
-            byte[] data = new byte[BUFFER_SIZE];
-
-            for (File file : files) {
-                if (!file.isFile()) {
-                    continue;
-                }
-                FileInputStream fileInputStream = new FileInputStream(file);
-
-                origin = new BufferedInputStream(fileInputStream, BUFFER_SIZE);
-
-                String filePath = file.getAbsolutePath();
-
-                try {
-                    ZipEntry entry = new ZipEntry(filePath.substring(filePath.lastIndexOf("/") + 1));
-
-                    out.putNextEntry(entry);
-
-                    int count;
-                    while ((count = origin.read(data, 0, BUFFER_SIZE)) != -1) {
-                        out.write(data, 0, count);
-                    }
-                } finally {
-                    origin.close();
-                }
-            }
-        }
-    }
-
-    //TODO: Merge similar components to zipToDb into a seperate function or use this function in zipToDB
+    //TODO: Merge similar components to zipToDb into a separate function or use this function in zipToDB
     public static void zipDb(List<MetaDataEntry> metaDataEntries, Context context) {
         int BUFFER = 2048;
         byte[] buffer = new byte[BUFFER];
@@ -285,7 +247,7 @@ public class IOUtils {
                 ZipEntry incidentLogFile = new ZipEntry("accEvents" + me.rideId + ".csv");
                 out.putNextEntry(incidentLogFile);
 
-                IncidentLog incidentLog = IncidentLog.loadIncidentLogFromFileOnly(me.rideId, context);
+                IncidentLog incidentLog = IncidentLog.loadIncidentLog(me.rideId, context);
                 buffer = (Files.getFileInfoLine(incidentLog.nn_version) + IncidentLog.INCIDENT_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                 out.write(buffer, 0, buffer.length);
                 for (IncidentLogEntry ie : incidentLog.getIncidents().values()) {
@@ -304,6 +266,7 @@ public class IOUtils {
                 buffer = (e.stringifyMetaDataEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                 out.write(buffer, 0, buffer.length);
             }
+            out.closeEntry();
 
             //Zip the shared prefs files
             File sharedPrefsDirectory = Directories.getSharedPrefsDirectory(context);
@@ -316,7 +279,7 @@ public class IOUtils {
                     out.putNextEntry(zipEntry);
 
                     int count;
-                    while ((count = origin.read(buffer, 0, buffer.length)) != -1) {
+                    while ((count = fi.read(buffer)) >= 0) {
                         out.write(buffer, 0, count);
                     }
                 }
@@ -328,7 +291,6 @@ public class IOUtils {
         }
     }
 
-    // TODO: Test this!
     /**
      * Imports the files contained in the zip folder to the db (for csv) or shared prefs (for xml)
      * @param zipUri
@@ -344,9 +306,7 @@ public class IOUtils {
             ZipEntry entry;
 
             while ((entry = zis.getNextEntry()) != null) {
-                //TODO: Find out what the suffixes for the different csv files are!
                 if (entry.getName().endsWith("_accGps.csv")) {
-                    //TODO: Check if this actually only reads the content of one file!
                     List<String> stringList = unzipToStringList(zis);
                     List<DataLogEntry> dataLogEntries = new ArrayList<>();
 

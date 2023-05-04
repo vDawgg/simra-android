@@ -42,7 +42,6 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
         context.startActivity(intent);
     }
 
-    //TODO: Implement this correctly!
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,14 +59,13 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
 
         backBtn = findViewById(R.id.back_button);
         backBtn.setOnClickListener(v -> finish());
-        Boolean isImperialUnit = SharedPref.Settings.DisplayUnit.isImperial(this);
+        boolean isImperialUnit = SharedPref.Settings.DisplayUnit.isImperial(this);
 
         if (!getIntent().hasExtra(EXTRA_RIDE_ID)) {
             throw new RuntimeException("Extra: " + EXTRA_RIDE_ID + " not defined.");
         }
         rideId = getIntent().getIntExtra(EXTRA_RIDE_ID, 0);
 
-        //TODO: Test this!
         MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this);
 
         int distanceDivider = 0;

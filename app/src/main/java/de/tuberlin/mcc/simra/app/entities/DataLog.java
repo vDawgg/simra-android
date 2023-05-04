@@ -3,20 +3,9 @@ package de.tuberlin.mcc.simra.app.entities;
 import android.content.Context;
 import android.location.Location;
 
-import androidx.room.Dao;
-import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
-import androidx.room.Query;
-
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +13,6 @@ import de.tuberlin.mcc.simra.app.database.DataLogDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.Utils;
-import io.reactivex.Completable;
 
 public class DataLog {
 
@@ -53,6 +41,7 @@ public class DataLog {
         return loadDataLogFromDB(rideId, null, null, context);
     }
 
+    //TODO: Use SQL for this
     public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();

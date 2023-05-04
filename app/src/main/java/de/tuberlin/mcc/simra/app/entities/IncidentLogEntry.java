@@ -83,23 +83,23 @@ public class IncidentLogEntry implements Serializable {
 
         dataLogEntry.withRideInformation(
                 dataLogLine.length > 4 ? (!dataLogLine[4].isEmpty() ? Integer.parseInt(dataLogLine[4]) : 0) : 0,
-                dataLogLine.length > 5 ? (!dataLogLine[5].isEmpty() ? dataLogLine[5].equals("1") : false) : false,
-                dataLogLine.length > 6 ? (!dataLogLine[6].isEmpty() ? dataLogLine[6].equals("1") : false) : false,
+                dataLogLine.length > 5 && (!dataLogLine[5].isEmpty() && dataLogLine[5].equals("1")),
+                dataLogLine.length > 6 && (!dataLogLine[6].isEmpty() && dataLogLine[6].equals("1")),
                 dataLogLine.length > 7 ? (!dataLogLine[7].isEmpty() ? Integer.parseInt(dataLogLine[7]) : 0) : 0,
                 dataLogLine.length > 8 ? (!dataLogLine[8].isEmpty() ? Integer.parseInt(dataLogLine[8]) : 0) : 0,
                 new InvolvedRoadUser(
-                        dataLogLine.length > 9 ? (!dataLogLine[9].isEmpty() ? dataLogLine[9].equals("1") : false) : false,
-                        dataLogLine.length > 10 ? (!dataLogLine[10].isEmpty() ? dataLogLine[10].equals("1") : false) : false,
-                        dataLogLine.length > 11 ? (!dataLogLine[11].isEmpty() ? dataLogLine[11].equals("1") : false) : false,
-                        dataLogLine.length > 12 ? (!dataLogLine[12].isEmpty() ? dataLogLine[12].equals("1") : false) : false,
-                        dataLogLine.length > 13 ? (!dataLogLine[13].isEmpty() ? dataLogLine[13].equals("1") : false) : false,
-                        dataLogLine.length > 14 ? (!dataLogLine[14].isEmpty() ? dataLogLine[14].equals("1") : false) : false,
-                        dataLogLine.length > 15 ? (!dataLogLine[15].isEmpty() ? dataLogLine[15].equals("1") : false) : false,
-                        dataLogLine.length > 16 ? (!dataLogLine[16].isEmpty() ? dataLogLine[16].equals("1") : false) : false,
-                        dataLogLine.length > 17 ? (!dataLogLine[17].isEmpty() ? dataLogLine[17].equals("1") : false) : false,
-                        dataLogLine.length > 20 ? (!dataLogLine[20].isEmpty() ? dataLogLine[20].equals("1") : false) : false
+                        dataLogLine.length > 9 && (!dataLogLine[9].isEmpty() && dataLogLine[9].equals("1")),
+                        dataLogLine.length > 10 && (!dataLogLine[10].isEmpty() && dataLogLine[10].equals("1")),
+                        dataLogLine.length > 11 && (!dataLogLine[11].isEmpty() && dataLogLine[11].equals("1")),
+                        dataLogLine.length > 12 && (!dataLogLine[12].isEmpty() && dataLogLine[12].equals("1")),
+                        dataLogLine.length > 13 && (!dataLogLine[13].isEmpty() && dataLogLine[13].equals("1")),
+                        dataLogLine.length > 14 && (!dataLogLine[14].isEmpty() && dataLogLine[14].equals("1")),
+                        dataLogLine.length > 15 && (!dataLogLine[15].isEmpty() && dataLogLine[15].equals("1")),
+                        dataLogLine.length > 16 && (!dataLogLine[16].isEmpty() && dataLogLine[16].equals("1")),
+                        dataLogLine.length > 17 && (!dataLogLine[17].isEmpty() && dataLogLine[17].equals("1")),
+                        dataLogLine.length > 20 && (!dataLogLine[20].isEmpty() && dataLogLine[20].equals("1"))
                 ),
-                dataLogLine.length > 18 ? (!dataLogLine[18].isEmpty() ? dataLogLine[18].equals("1") : false) : false,
+                dataLogLine.length > 18 && (!dataLogLine[18].isEmpty() && dataLogLine[18].equals("1")),
                 dataLogLine.length > 19 ? (!dataLogLine[19].isEmpty() ? dataLogLine[19].replaceAll(";linebreak;", System.lineSeparator()).replaceAll(";komma;", ",") : "") : ""
         );
 

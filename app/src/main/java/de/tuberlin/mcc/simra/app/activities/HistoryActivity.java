@@ -112,9 +112,9 @@ public class HistoryActivity extends BaseActivity {
     }
 
     /**
-     *
+     * Loads all rides currently saved in the db and shows them in the ArrayAdapter (sorted from
+     * newest to oldest)
      */
-    //TODO: Possibly redo this! -> Manipulating the data this way seems inefficient
     private void refreshMyRides() {
         long start = System.currentTimeMillis();
         MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this);
@@ -135,8 +135,6 @@ public class HistoryActivity extends BaseActivity {
             MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
             binding.listView.setAdapter(myAdapter);
         } else {
-            Log.d(TAG, "Metadata table has no items");
-
             Snackbar snackbar = Snackbar.make(findViewById(R.id.coordinator_layout), (getString(R.string.noHistory)), Snackbar.LENGTH_LONG);
             snackbar.show();
         }
@@ -206,7 +204,6 @@ public class HistoryActivity extends BaseActivity {
             end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Deleting dataLog took: " + (end-start) + " (in ms)");
 
-            //FIXME: Incidents do not seem to be deleted currently
             start = System.currentTimeMillis();
             IncidentLog.deleteIncidentsOfRide(rideId, this);
             end = System.currentTimeMillis();
