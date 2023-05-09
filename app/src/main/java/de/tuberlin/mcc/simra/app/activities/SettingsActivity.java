@@ -20,6 +20,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.concurrent.ExecutionException;
 
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -255,29 +256,33 @@ public class SettingsActivity extends BaseActivity {
     }
 
     public void fireDebugPromptDB() {
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
-        MetaDataEntry[] metaDataEntries = MetaData.getMetaDataEntriesLastModifies(this);
-        CharSequence[] array;
-        array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugDoNotSendRides)};
-        final int[] clicked = {2};
-        builder.setSingleChoiceItems(array, 2, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                clicked[0] = which;
-            }
-        });
-        builder.setPositiveButton(R.string.upload, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                prepareDebugZipDB(clicked[0], metaDataEntries, SettingsActivity.this);
-                Intent intent = new Intent(SettingsActivity.this, DebugUploadService.class);
-                startService(intent);
-                // delete zip.zip after upload is finished
-                new File(IOUtils.Directories.getBaseFolderPath(SettingsActivity.this) + "zip.zip").deleteOnExit();
-            }
-        });
-        builder.setNegativeButton(R.string.cancel, null);
-        builder.show();
+        try {
+            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
+            MetaDataEntry[] metaDataEntries = MetaData.getMetaDataEntriesLastModifies(this).get();
+            CharSequence[] array;
+            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugDoNotSendRides)};
+            final int[] clicked = {2};
+            builder.setSingleChoiceItems(array, 2, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    clicked[0] = which;
+                }
+            });
+            builder.setPositiveButton(R.string.upload, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    prepareDebugZipDB(clicked[0], metaDataEntries, SettingsActivity.this);
+                    Intent intent = new Intent(SettingsActivity.this, DebugUploadService.class);
+                    startService(intent);
+                    // delete zip.zip after upload is finished
+                    new File(IOUtils.Directories.getBaseFolderPath(SettingsActivity.this) + "zip.zip").deleteOnExit();
+                }
+            });
+            builder.setNegativeButton(R.string.cancel, null);
+            builder.show();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void updatePrivacyDistanceSlider(UnitHelper.DISTANCE unit) {

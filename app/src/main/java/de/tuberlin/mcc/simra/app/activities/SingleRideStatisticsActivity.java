@@ -23,6 +23,8 @@ import de.tuberlin.mcc.simra.app.util.SharedPref;
 
 import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
 
+import java.util.concurrent.ExecutionException;
+
 public class SingleRideStatisticsActivity extends AppCompatActivity {
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Log tag
@@ -66,8 +68,6 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
         }
         rideId = getIntent().getIntExtra(EXTRA_RIDE_ID, 0);
 
-        MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this);
-
         int distanceDivider = 0;
         String distanceUnit = "";
         String speedUnit = "";
@@ -81,65 +81,71 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
             speedUnit = " km/h";
         }
 
-        // total distance of this ride
-        TextView distanceOfRide = binding.distanceOfRideText;
-        double distanceOfRideRaw = (((double)metaDataEntry.distance) / distanceDivider);
-        distanceOfRide.setText(getText(R.string.distance) + " " + (Math.round(distanceOfRideRaw * 100.0) / 100.0) + distanceUnit);
-        distanceOfRide.invalidate();
+        try {
+            MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this).get();
 
-        // duration of this ride in HH:MM
-        TextView durationOfRide = binding.durationOfRideText;
-        //duration in ms
-        long duration = metaDataEntry.endTime - metaDataEntry.startTime;
-        long rideDurationHours = (duration) / 3600000;
-        long rideDurationMinutes = ((duration) % 3600000) / 60000;
-        String rideDurationH;
-        String rideDurationM;
-        if (rideDurationHours < 10) {
-            rideDurationH = "0" + rideDurationHours;
-        } else {
-            rideDurationH = String.valueOf(rideDurationHours);
+            // total distance of this ride
+            TextView distanceOfRide = binding.distanceOfRideText;
+            double distanceOfRideRaw = (((double)metaDataEntry.distance) / distanceDivider);
+            distanceOfRide.setText(getText(R.string.distance) + " " + (Math.round(distanceOfRideRaw * 100.0) / 100.0) + distanceUnit);
+            distanceOfRide.invalidate();
+
+            // duration of this ride in HH:MM
+            TextView durationOfRide = binding.durationOfRideText;
+            //duration in ms
+            long duration = metaDataEntry.endTime - metaDataEntry.startTime;
+            long rideDurationHours = (duration) / 3600000;
+            long rideDurationMinutes = ((duration) % 3600000) / 60000;
+            String rideDurationH;
+            String rideDurationM;
+            if (rideDurationHours < 10) {
+                rideDurationH = "0" + rideDurationHours;
+            } else {
+                rideDurationH = String.valueOf(rideDurationHours);
+            }
+            if (rideDurationMinutes < 10) {
+                rideDurationM = "0" + rideDurationMinutes;
+            } else {
+                rideDurationM = String.valueOf(rideDurationMinutes);
+            }
+            durationOfRide.setText(getText(R.string.duration) + " " + rideDurationH + ":" + rideDurationM + " h");
+            durationOfRide.invalidate();
+
+            // total duration of waited time in this rides in HH:MM
+            TextView durationOfWaitedTime = binding.durationOfIdleText;
+            long waitDurationHours = (metaDataEntry.waitedTime / 3600);
+            long waitDurationMinutes = (metaDataEntry.waitedTime % 3600) / 60;
+
+            String waitDurationH;
+            String waitDurationM;
+            if (waitDurationHours < 10) {
+                waitDurationH = "0" + waitDurationHours;
+            } else {
+                waitDurationH = String.valueOf(waitDurationHours);
+            }
+            if (waitDurationMinutes < 10) {
+                waitDurationM = "0" + waitDurationMinutes;
+            } else {
+                waitDurationM = String.valueOf(waitDurationMinutes);
+            }
+            durationOfWaitedTime.setText(getText(R.string.idle) + " " + waitDurationH + ":" + waitDurationM + " h");
+            durationOfWaitedTime.invalidate();
+
+            // amount of co2 emissions saved by taking a bicycle instead of a car (138g/km)
+            TextView co2SavingsText = binding.co2SavingsText;
+
+            co2SavingsText.setText(getText(R.string.co2Savings) + " " + (Math.round((double) calculateCO2Savings(metaDataEntry.distance)) + " g"));
+
+            co2SavingsText.invalidate();
+
+            // average speed of per ride of all uploaded rides
+            TextView averageSpeedText = binding.averageSpeedText;
+            double averageSpeedRaw = ((((double) metaDataEntry.distance) / (double) distanceDivider) / ((((double) duration / (double) 1000) - ((double) metaDataEntry.waitedTime)) / (double) 3600));
+            averageSpeedText.setText(getText(R.string.average_Speed) + " " + (Math.round(averageSpeedRaw * 100.0) / 100.0) + speedUnit);
+            averageSpeedText.invalidate();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
         }
-        if (rideDurationMinutes < 10) {
-            rideDurationM = "0" + rideDurationMinutes;
-        } else {
-            rideDurationM = String.valueOf(rideDurationMinutes);
-        }
-        durationOfRide.setText(getText(R.string.duration) + " " + rideDurationH + ":" + rideDurationM + " h");
-        durationOfRide.invalidate();
-
-        // total duration of waited time in this rides in HH:MM
-        TextView durationOfWaitedTime = binding.durationOfIdleText;
-        long waitDurationHours = (metaDataEntry.waitedTime / 3600);
-        long waitDurationMinutes = (metaDataEntry.waitedTime % 3600) / 60;
-
-        String waitDurationH;
-        String waitDurationM;
-        if (waitDurationHours < 10) {
-            waitDurationH = "0" + waitDurationHours;
-        } else {
-            waitDurationH = String.valueOf(waitDurationHours);
-        }
-        if (waitDurationMinutes < 10) {
-            waitDurationM = "0" + waitDurationMinutes;
-        } else {
-            waitDurationM = String.valueOf(waitDurationMinutes);
-        }
-        durationOfWaitedTime.setText(getText(R.string.idle) + " " + waitDurationH + ":" + waitDurationM + " h");
-        durationOfWaitedTime.invalidate();
-
-        // amount of co2 emissions saved by taking a bicycle instead of a car (138g/km)
-        TextView co2SavingsText = binding.co2SavingsText;
-
-        co2SavingsText.setText(getText(R.string.co2Savings) + " " + (Math.round((double) calculateCO2Savings(metaDataEntry.distance)) + " g"));
-
-        co2SavingsText.invalidate();
-
-        // average speed of per ride of all uploaded rides
-        TextView averageSpeedText = binding.averageSpeedText;
-        double averageSpeedRaw = ((((double) metaDataEntry.distance) / (double) distanceDivider) / ((((double) duration / (double) 1000) - ((double) metaDataEntry.waitedTime)) / (double) 3600));
-        averageSpeedText.setText(getText(R.string.average_Speed) + " " + (Math.round(averageSpeedRaw * 100.0) / 100.0) + speedUnit);
-        averageSpeedText.invalidate();
     }
 
     @Override

@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -79,26 +80,31 @@ public class Utils {
      * @return The ride to upload and the filtered incident log to overwrite after successful upload
      */
     public static Pair<String, IncidentLog> getConsolidatedRideForUpload(int rideId, Context context) {
-        StringBuilder content = new StringBuilder();
+        try {
+            StringBuilder content = new StringBuilder();
 
-        IncidentLogEntry[] incidentLogEntries = IncidentLog.loadIncidentLogEntriesOfRide(rideId, context);
-        content.append(IOUtils.Files.getFileInfoLine(incidentLogEntries[0].nn_version))
-                .append(IncidentLog.INCIDENT_LOG_HEADER)
-                .append(System.lineSeparator());
-        for (IncidentLogEntry incident : incidentLogEntries) {
-            content.append(incident.stringifyDataLogEntry()).append(System.lineSeparator());
+            IncidentLogEntry[] incidentLogEntries = IncidentLog.loadIncidentLogEntriesOfRide(rideId, context).get();
+            content.append(IOUtils.Files.getFileInfoLine(incidentLogEntries[0].nn_version))
+                    .append(IncidentLog.INCIDENT_LOG_HEADER)
+                    .append(System.lineSeparator());
+            for (IncidentLogEntry incident : incidentLogEntries) {
+                content.append(incident.stringifyDataLogEntry()).append(System.lineSeparator());
+            }
+
+            IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLog(rideId, context), null, null, null, null, true);
+            String dataLog = DataLog.loadDataLog(rideId, context).toString();
+
+            content.append("=========================")
+                    .append(System.lineSeparator())
+                    .append(dataLog);
+
+            Log.d("DEBUG", "Consolidated ride for upload:\n" + content.toString());
+
+            return new Pair<>(content.toString(), incidentLog);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
         }
-
-        IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLog(rideId, context), null, null, null, null, true);
-        String dataLog = DataLog.loadDataLog(rideId, context).toString();
-
-        content.append("=========================")
-                .append(System.lineSeparator())
-                .append(dataLog);
-
-        Log.d("DEBUG", "Consolidated ride for upload:\n"+content.toString());
-
-        return new Pair<>(content.toString(), incidentLog);
     }
 
     public static void overwriteFile(String content, File file) {
@@ -274,16 +280,14 @@ public class Utils {
         return new Pair<>(null, -2);
     }
 
-    //TODO: Change all occurences of Accevent to IncidentLogEntry instead! -> This should also make it
-    // possible to delete Accevent alltogether
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
         class Event {
-            double lat;
-            double lon;
-            double maxXDelta;
-            double maxYDelta;
-            double maxZDelta;
-            long timeStamp;
+            final double lat;
+            final double lon;
+            final double maxXDelta;
+            final double maxYDelta;
+            final double maxZDelta;
+            final long timeStamp;
 
             public Event(double lat, double lon, double maxXDelta, double maxYDelta, double maxZDelta, long timeStamp) {
                 this.lat = lat;
@@ -295,140 +299,146 @@ public class Utils {
             }
         }
 
-        Log.d(TAG, "findAccEventsLocal()");
-        List<AccEvent> accEvents = new ArrayList<>(6);
+        try {
+            List<IncidentLogEntry> accEvents = new ArrayList<>(6);
 
-        // Each String[] in ride is a part of the ride which is approx. 3 seconds long.
-        List<String[]> ride = new ArrayList<>();
-        List<Event> events = new ArrayList<>(6);
-        accEvents.add(new AccEvent(0, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(1, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(2, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(3, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(4, 999.0, 999.0, 0, false, "0", "0"));
-        accEvents.add(new AccEvent(5, 999.0, 999.0, 0, false, "0", "0"));
+            // Each String[] in ride is a part of the ride which is approx. 3 seconds long.
+            List<String[]> ride = new ArrayList<>();
+            List<Event> events = new ArrayList<>(6);
+            IncidentLogEntry.InvolvedRoadUser involvedRoadUser = new IncidentLogEntry.InvolvedRoadUser(false, false, false, false, false, false, false, false, false, false);
+            accEvents.add(new IncidentLogEntry(0, 999.0, 999.0, 0L, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+            accEvents.add(new IncidentLogEntry(1, 999.0, 999.0, 0L, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+            accEvents.add(new IncidentLogEntry(2, 999.0, 999.0, 0L, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+            accEvents.add(new IncidentLogEntry(3, 999.0, 999.0, 0L, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+            accEvents.add(new IncidentLogEntry(4, 999.0, 999.0, 0L, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+            accEvents.add(new IncidentLogEntry(5, 999.0, 999.0, 0L, 0, false, false, 0, 0, involvedRoadUser, false, ""));
 
-        Event template = new Event(0, 0, 0, 0, 0, 0);
-        events.add(template);
-        events.add(template);
-        events.add(template);
-        events.add(template);
-        events.add(template);
-        events.add(template);
+            Event template = new Event(0, 0, 0, 0, 0, 0);
+            events.add(template);
+            events.add(template);
+            events.add(template);
+            events.add(template);
+            events.add(template);
+            events.add(template);
 
-        DataLogEntry[] entries = DataLog.loadDataLogEntriesOfRide(rideId, context);
+            DataLogEntry[] entries = DataLog.loadDataLogEntriesOfRide(rideId, context).get();
 
-        boolean newSubPart = false;
+            boolean newSubPart = false;
 
-        for (int i = 0; i < entries.length; i++) {
-            if (newSubPart) break;
+            for (int i = 0; i < entries.length; i++) {
+                if (newSubPart) break;
 
-            DataLogEntry entry = entries[i];
+                DataLogEntry entry = entries[i];
 
-            double maxX = entry.accelerometerX;
-            double minX = entry.accelerometerX;
-            double maxY = entry.accelerometerY;
-            double minY = entry.accelerometerY;
-            double maxZ = entry.accelerometerZ;
-            double minZ = entry.accelerometerZ;
-            long timestamp = entry.timestamp;
+                double maxX = entry.accelerometerX;
+                double minX = entry.accelerometerX;
+                double maxY = entry.accelerometerY;
+                double minY = entry.accelerometerY;
+                double maxZ = entry.accelerometerZ;
+                double minZ = entry.accelerometerZ;
+                long timestamp = entry.timestamp;
 
-            if (entries.length > i+1 && entries[i+1].latitude == null) {
-                newSubPart = true;
+                if (entries.length > i + 1 && entries[i + 1].latitude == null) {
+                    newSubPart = true;
 
-                for (int j = i+1; j < entries.length; j++) {
-                    DataLogEntry tempEntry = entries[j];
+                    for (int j = i + 1; j < entries.length; j++) {
+                        DataLogEntry tempEntry = entries[j];
 
-                    maxX = (tempEntry.accelerometerX >= maxX) ? tempEntry.accelerometerX : maxX;
-                    minX = (tempEntry.accelerometerX < minX) ? tempEntry.accelerometerX : minX;
-                    maxY = (tempEntry.accelerometerY >= maxY) ? tempEntry.accelerometerY : maxY;
-                    minY = (tempEntry.accelerometerY < minY) ? tempEntry.accelerometerY : minY;
-                    maxZ = (tempEntry.accelerometerZ >= maxZ) ? tempEntry.accelerometerZ : maxZ;
-                    minZ = (tempEntry.accelerometerZ < minZ) ? tempEntry.accelerometerZ : minZ;
+                        maxX = (tempEntry.accelerometerX >= maxX) ? tempEntry.accelerometerX : maxX;
+                        minX = (tempEntry.accelerometerX < minX) ? tempEntry.accelerometerX : minX;
+                        maxY = (tempEntry.accelerometerY >= maxY) ? tempEntry.accelerometerY : maxY;
+                        minY = (tempEntry.accelerometerY < minY) ? tempEntry.accelerometerY : minY;
+                        maxZ = (tempEntry.accelerometerZ >= maxZ) ? tempEntry.accelerometerZ : maxZ;
+                        minZ = (tempEntry.accelerometerZ < minZ) ? tempEntry.accelerometerZ : minZ;
 
-                    if (entries.length > j+1 && entries[j+1].latitude == null) {
-                        newSubPart = false;
-                        break;
+                        if (entries.length > j + 1 && entries[j + 1].latitude == null) {
+                            newSubPart = false;
+                            break;
+                        }
                     }
                 }
-            }
 
-            double maxXDelta = Math.abs(maxX - minX);
-            double maxYDelta = Math.abs(maxY - minY);
-            double maxZDelta = Math.abs(maxZ - minZ);
+                double maxXDelta = Math.abs(maxX - minX);
+                double maxYDelta = Math.abs(maxY - minY);
+                double maxZDelta = Math.abs(maxZ - minZ);
 
-            double lat = (entry.latitude == null) ? 0f : entry.latitude;
-            double lon = (entry.longitude == null) ? 0f : entry.longitude;
-            Event currEvent = new Event(lat, lon, maxXDelta, maxYDelta, maxZDelta, timestamp);
+                double lat = (entry.latitude == null) ? 0f : entry.latitude;
+                double lon = (entry.longitude == null) ? 0f : entry.longitude;
+                Event currEvent = new Event(lat, lon, maxXDelta, maxYDelta, maxZDelta, timestamp);
 
-            // Checks whether there is a minimum of <threshold> milliseconds
-            // between the actual event and the top 6 events so far.
-            int threshold = 10000; // 10 seconds
-            long minTimeDelta = 999999999;
-            for (int j = 0; j < events.size(); j++) {
-                long actualTimeDelta = timestamp - events.get(j).timeStamp;
-                if (actualTimeDelta < minTimeDelta) {
-                    minTimeDelta = actualTimeDelta;
+                // Checks whether there is a minimum of <threshold> milliseconds
+                // between the actual event and the top 6 events so far.
+                int threshold = 10000; // 10 seconds
+                long minTimeDelta = 999999999;
+                for (int j = 0; j < events.size(); j++) {
+                    long actualTimeDelta = timestamp - events.get(j).timeStamp;
+                    if (actualTimeDelta < minTimeDelta) {
+                        minTimeDelta = actualTimeDelta;
+                    }
+                }
+                boolean enoughTimePassed = minTimeDelta > threshold;
+
+                // Check whether actualX is one of the top 2 events
+                boolean eventAdded = false;
+                if (maxXDelta > events.get(0).maxXDelta && !eventAdded && enoughTimePassed) {
+                    Event temp = events.get(0);
+                    events.set(0, currEvent);
+                    accEvents.set(0, new IncidentLogEntry(0, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+
+                    events.set(1, temp);
+                    accEvents.set(1, new IncidentLogEntry(1, temp.lat, temp.lon, temp.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+                    eventAdded = true;
+                } else if (maxXDelta > events.get(1).maxXDelta && !eventAdded && enoughTimePassed) {
+                    events.set(1, currEvent);
+                    accEvents.set(1, new IncidentLogEntry(1, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+                    eventAdded = true;
+                }
+                // Check whether actualY is one of the top 2 events
+                else if (maxYDelta > events.get(2).maxYDelta && !eventAdded && enoughTimePassed) {
+                    Event temp = events.get(2);
+                    events.set(2, currEvent);
+                    accEvents.set(2, new IncidentLogEntry(2, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+                    events.set(3, temp);
+                    accEvents.set(3, new IncidentLogEntry(3, temp.lat, temp.lon, temp.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+                    eventAdded = true;
+                } else if (maxYDelta > events.get(3).maxYDelta && !eventAdded && enoughTimePassed) {
+                    events.set(3, currEvent);
+                    accEvents.set(3, new IncidentLogEntry(3, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+                    eventAdded = true;
+                }
+                // Check whether actualZ is one of the top 2 events
+                else if (maxZDelta > events.get(4).maxZDelta && !eventAdded && enoughTimePassed) {
+                    Event temp = events.get(4);
+                    events.set(4, currEvent);
+                    accEvents.set(4, new IncidentLogEntry(4, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+                    events.set(5, temp);
+                    accEvents.set(5, new IncidentLogEntry(5, temp.lat, temp.lon, temp.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+
+                } else if (maxZDelta > events.get(5).maxZDelta && !eventAdded && enoughTimePassed) {
+                    events.set(5, currEvent);
+                    accEvents.set(5, new IncidentLogEntry(5, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
+                    eventAdded = true;
                 }
             }
-            boolean enoughTimePassed = minTimeDelta > threshold;
 
-            //TODO: Shorten this when there is enough time!
-            // Check whether actualX is one of the top 2 events
-            boolean eventAdded = false;
-            if (maxXDelta > events.get(0).maxXDelta && !eventAdded && enoughTimePassed) {
-                Event temp = events.get(0);
-                events.set(0, currEvent);
-                accEvents.set(0, new AccEvent(0, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
+            List<IncidentLogEntry> incidents = new ArrayList<>();
+            int key = 0;
+            for (IncidentLogEntry incidentLogEntry : accEvents) {
+                if (!(incidentLogEntry.latitude == 999 || incidentLogEntry.latitude == 0f)) {
+                    incidentLogEntry.incidentType = IncidentLogEntry.INCIDENT_TYPE.AUTO_GENERATED;
+                    incidentLogEntry.key = key++;
+                    incidents.add(incidentLogEntry);
+                }
+            }
 
-                events.set(1, temp);
-                accEvents.set(1, new AccEvent(1, temp.lat, temp.lon, temp.timeStamp, false, "0", "0"));
-                eventAdded = true;
-            } else if (maxXDelta > events.get(1).maxXDelta && !eventAdded && enoughTimePassed) {
-                events.set(1, currEvent);
-                accEvents.set(1, new AccEvent(1, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
-                eventAdded = true;
-            }
-            // Check whether actualY is one of the top 2 events
-            else if (maxYDelta > events.get(2).maxYDelta && !eventAdded && enoughTimePassed) {
-                Event temp = events.get(2);
-                events.set(2, currEvent);
-                accEvents.set(2, new AccEvent(2, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
-                events.set(3, temp);
-                accEvents.set(3, new AccEvent(3, temp.lat, temp.lon, temp.timeStamp, false, "0", "0"));
-                eventAdded = true;
-            } else if (maxYDelta > events.get(3).maxYDelta && !eventAdded && enoughTimePassed) {
-                events.set(3, currEvent);
-                accEvents.set(3, new AccEvent(3, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
-                eventAdded = true;
-            }
-            // Check whether actualZ is one of the top 2 events
-            else if (maxZDelta > events.get(4).maxZDelta && !eventAdded && enoughTimePassed) {
-                Event temp = events.get(4);
-                events.set(4, currEvent);
-                accEvents.set(4, new AccEvent(4, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
-                events.set(5, temp);
-                accEvents.set(5, new AccEvent(5, temp.lat, temp.lon, temp.timeStamp, false, "0", "0"));
+            Pair<List<IncidentLogEntry>, Integer> r = new Pair<>(incidents, 0);
+            Log.d("DEBUG", "nn_version of return: " + r.second);
 
-            } else if (maxZDelta > events.get(5).maxZDelta && !eventAdded && enoughTimePassed) {
-                events.set(5, currEvent);
-                accEvents.set(5, new AccEvent(5, currEvent.lat, currEvent.lon, currEvent.timeStamp, false, "0", "0"));
-                eventAdded = true;
-            }
+            return new Pair<>(incidents, 0);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
         }
-
-        List<IncidentLogEntry> incidents = new ArrayList<>();
-        int key = 0;
-        for (AccEvent accEvent : accEvents) {
-            if (!(accEvent.position.getLatitude() == 999 || accEvent.position.getLatitude() == 0f)) {
-                incidents.add(IncidentLogEntry.newBuilder().withRideId(rideId).withIncidentType(IncidentLogEntry.INCIDENT_TYPE.AUTO_GENERATED).withBaseInformation(accEvent.timeStamp, accEvent.position.getLatitude(), accEvent.position.getLongitude()).withKey(key++).build());
-            }
-        }
-
-        Pair<List<IncidentLogEntry>, Integer> r = new Pair<>(incidents, 0);
-        Log.d("DEBUG", "nn_version of return: "+r.second);
-
-        return new Pair<>(incidents,0);
     }
 
     public static List<DataLogEntry> mergeGPSAndSensor(Queue<DataLogEntry> gpsLines, Queue<DataLogEntry> sensorLines) {
@@ -593,37 +603,7 @@ public class Utils {
     }
 
     public static void prepareDebugZipDB(int mode, MetaDataEntry[] rides, Context context) {
-        List<MetaDataEntry> metaDataEntries = new ArrayList<>(Arrays.asList(rides));
-        if (mode == 2 || mode == 1) metaDataEntries.clear();
-        zipDb(metaDataEntries, context);
-    }
-
-    /**
-     * @deprecated Use IncidentLogEntry  instead
-     */
-    private static class AccEvent {
-
-        public long timeStamp;
-        public GeoPoint position;
-        public int key = 999;              // when an event doesn't have a key yet, the key is 999
-        // (can't use 0 because that's an actual valid key)
-        public String incidentType = "-1";
-        public String scary = "0"; // default is non-scary
-        public boolean annotated = false;  // events are labeled as not annotated when first created.
-        String TAG = "AccEvent_LOG";
-
-        public AccEvent(int key, double lat, double lon, long timeStamp, boolean annotated, String incidentType, String scary) {
-            this.key = key;
-            this.position = new GeoPoint(lat, lon);
-            this.timeStamp = timeStamp;
-            this.annotated = annotated;
-            this.incidentType = incidentType;
-            this.scary = scary;
-        }
-
-
-        public long getTimeStamp() {
-            return this.timeStamp;
-        }
+        if (mode == 2 || mode == 1) rides = new MetaDataEntry[0];
+        zipDb(rides, context);
     }
 }

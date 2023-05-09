@@ -7,8 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
-import de.tuberlin.mcc.simra.app.database.IncidentLogDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
 public class IncidentLog {
@@ -48,25 +49,29 @@ public class IncidentLog {
     public static IncidentLog loadIncidentLogWithRideSettingsAndBoundary(int rideId, Integer bikeType, Integer phoneLocation, Boolean childOnBoard, Boolean bikeWithTrailer, Long startTimeBoundary, Long endTimeBoundary, Context context) {
         TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
 
-        SimRaDB db = SimRaDB.getDataBase(context);
-        IncidentLogDao incidentLogDao = db.getIncidentLogDao();
-        IncidentLogEntry[] incidentLogEntries = incidentLogDao.loadIncidentLog(rideId);
+        try {
+            IncidentLogEntry[] incidentLogEntries = SimRaDB.databaseWriteExecutor.submit(() ->
+                    SimRaDB.getDataBase(context).getIncidentLogDao().loadIncidentLog(rideId)).get();
 
-        if (incidentLogEntries.length == 0) {
-            return new IncidentLog(rideId, incidents, 0);
-        }
-
-        for (IncidentLogEntry incidentLogEntry : incidentLogEntries) {
-            incidentLogEntry.bikeType = bikeType;
-            incidentLogEntry.phoneLocation = phoneLocation;
-            incidentLogEntry.childOnBoard = childOnBoard;
-            incidentLogEntry.bikeWithTrailer = bikeWithTrailer;
-            if (!(incidentLogEntry.incidentType == IncidentLogEntry.INCIDENT_TYPE.FOR_RIDE_SETTINGS) && incidentLogEntry.isInTimeFrame(startTimeBoundary, endTimeBoundary)) {
-                incidents.put(incidentLogEntry.key, incidentLogEntry);
+            if (incidentLogEntries.length == 0) {
+                return new IncidentLog(rideId, incidents, 0);
             }
-        }
 
-        return new IncidentLog(rideId, incidents, incidentLogEntries[0].nn_version);
+            for (IncidentLogEntry incidentLogEntry : incidentLogEntries) {
+                incidentLogEntry.bikeType = bikeType;
+                incidentLogEntry.phoneLocation = phoneLocation;
+                incidentLogEntry.childOnBoard = childOnBoard;
+                incidentLogEntry.bikeWithTrailer = bikeWithTrailer;
+                if (!(incidentLogEntry.incidentType == IncidentLogEntry.INCIDENT_TYPE.FOR_RIDE_SETTINGS) && incidentLogEntry.isInTimeFrame(startTimeBoundary, endTimeBoundary)) {
+                    incidents.put(incidentLogEntry.key, incidentLogEntry);
+                }
+            }
+
+            return new IncidentLog(rideId, incidents, incidentLogEntries[0].nn_version);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static IncidentLog filterIncidentLogTime(IncidentLog incidentLog, Long startTimeBoundary, Long endTimeBoundary) {
@@ -100,7 +105,7 @@ public class IncidentLog {
         return new IncidentLog(incidentLog.rideId, incidents, incidentLog.nn_version);
     }
 
-    public static void saveIncidentLog(IncidentLog incidentLog, Context context) {
+    public static Future<?> saveIncidentLog(IncidentLog incidentLog, Context context) {
         List<IncidentLogEntry> incidents = new ArrayList<>(incidentLog.getIncidents().values());
 
         //Make sure that all incidents actually have the correct ride-id
@@ -111,7 +116,8 @@ public class IncidentLog {
             incidents.set(i, incident);
         }
 
-        SimRaDB.getDataBase(context).getIncidentLogDao().addOrUpdateIncidentLogEntries(incidents);
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getIncidentLogDao().addOrUpdateIncidentLogEntries(incidents));
     }
 
     /**
@@ -120,8 +126,9 @@ public class IncidentLog {
      * @param context
      * @return Array of all relevant IncidentLogEntries
      */
-    public static IncidentLogEntry[] loadIncidentLogEntriesOfRide(int rideId, Context context) {
-        return SimRaDB.getDataBase(context).getIncidentLogDao().loadIncidentLog(rideId);
+    public static Future<IncidentLogEntry[]> loadIncidentLogEntriesOfRide(int rideId, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getIncidentLogDao().loadIncidentLog(rideId));
     }
 
     /**
@@ -129,8 +136,9 @@ public class IncidentLog {
      * @param rideId the given rideId
      * @param context
      */
-    public static void deleteIncidentsOfRide(int rideId, Context context) {
-        SimRaDB.getDataBase(context).getIncidentLogDao().deleteIncidentLogEntries(rideId);
+    public static Future<?> deleteIncidentsOfRide(int rideId, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getIncidentLogDao().deleteIncidentLogEntries(rideId));
     }
 
     public static List<IncidentLogEntry> getScaryIncidents(IncidentLog incidentLog) {

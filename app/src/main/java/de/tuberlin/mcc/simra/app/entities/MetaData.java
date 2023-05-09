@@ -4,20 +4,19 @@ import android.content.Context;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
-
-//TODO: Remove this whole class as it should not be needed anymore
-// This might also apply to DataLog though the logic in that class
-// is not as easily replaceable
 /**
  * //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * // META-FILE (one per user): contains ...
+ * // METADATA: contains ...
  * // * the information required to display rides in the ride history (See RecorderService)
  * //   (DATE,START TIME, END TIME, ANNOTATED TRUE/FALSE)
- * // * the RIDE KEY which allows to identify the file containing the complete data for
- * //   a ride. => Use case: user wants to view a ride from history - retrieve data
- * // * one meta file per user, so we only want to create it if it doesn't exist yet.
+ * // * the RIDE KEY which allows to identify the the actual ride-data containing the complete data
+ * //   for a ride. => Use case: user wants to view a ride from history - retrieve data
  */
 public class MetaData {
     public final static String METADATA_HEADER = "key,startTime,endTime,state,numberOfIncidents,waitedTime,distance,numberOfScary,region";
@@ -33,8 +32,9 @@ public class MetaData {
      * @param context
      * @return
      */
-    public static MetaDataEntry getMetadataEntryForRide(int rideId, Context context) {
-        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntryForRide(rideId);
+    public static Future<MetaDataEntry> getMetadataEntryForRide(int rideId, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntryForRide(rideId));
     }
 
     /**
@@ -42,8 +42,9 @@ public class MetaData {
      * @param context
      * @return Array of MetadataEntries sorted by the rideId
      */
-    public static MetaDataEntry[] getMetadataEntriesSortedByKey(Context context) {
-        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey();
+    public static Future<MetaDataEntry[]> getMetadataEntriesSortedByKey(Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey());
     }
 
     /**
@@ -51,8 +52,9 @@ public class MetaData {
      * @param context
      * @return
      */
-    public static MetaDataEntry[] getMetaDataEntriesLastModifies(Context context) {
-        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesLastModified();
+    public static Future<MetaDataEntry[]> getMetaDataEntriesLastModifies(Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesLastModified());
     }
 
     /**
@@ -60,8 +62,9 @@ public class MetaData {
      * @param entry the MetadataEntry
      * @param context
      */
-    public static void updateOrAddMetadataEntryForRide(MetaDataEntry entry, Context context) {
-        SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry);
+    public static Future<?> updateOrAddMetadataEntryForRide(MetaDataEntry entry, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry));
     }
 
     /**
@@ -69,8 +72,9 @@ public class MetaData {
      * @param entries
      * @param context
      */
-    public static void updateOrAddMetadataEntries(List<MetaDataEntry> entries, Context context) {
-        SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntries(entries);
+    public static Future<?> updateOrAddMetadataEntries(List<MetaDataEntry> entries, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntries(entries));
     }
 
     /**
@@ -78,11 +82,11 @@ public class MetaData {
      * @param rideId the rideId for the MetaDataEntry to be deleted
      * @param context
      */
-    public static void deleteMetadataEntryForRide(int rideId, Context context) {
-        SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId);
+    public static Future<?> deleteMetadataEntryForRide(int rideId, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId));
     }
 
-    //TODO: Check if this should really be here and not in MetaDataEntry
     public static class STATE {
         /**
          * The ride is saved locally and was not yet annotated

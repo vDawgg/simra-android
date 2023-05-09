@@ -3,16 +3,16 @@ package de.tuberlin.mcc.simra.app.entities;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Fts4;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
-//TODO: Think about full-text search or indexes
+@Fts4
 @Entity(tableName = "data_log_table")
 public class DataLogEntry {
-    //private static final String TAG = "DataLogEntry_LOG:";
-
+    @Ignore
     @PrimaryKey(autoGenerate = true)
-    public Integer id;
-
+    public Integer rowid;
     @NonNull
     public final Integer rideId;
     public final Double latitude;

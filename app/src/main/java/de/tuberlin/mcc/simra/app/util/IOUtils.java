@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -77,8 +78,6 @@ public class IOUtils {
     }
 
     public static boolean zipToDb(Uri toLocation, Context context) {
-        final int BUFFER = 2048;
-        byte[] buffer = new byte[BUFFER];
         try {
             DocumentFile parent = DocumentFile.fromTreeUri(context, toLocation);
             try {
@@ -93,10 +92,25 @@ public class IOUtils {
             }
             FileOutputStream dest = (FileOutputStream) context.getContentResolver().openOutputStream(zipUri);
             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
+            MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(context).get();
 
-            //Get the content of the MetaData table and create incident and DataLog files for the
-            // respective entries
-            MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(context);
+            return zip(metaDataEntries, out, context);
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Zips all rides in the list of metadata files and the shared prefs
+     * @param metaDataEntries array of metadata entries for writes that should be written to zip
+     * @param out the zip output stream
+     * @param context android context
+     */
+    public static boolean zip(MetaDataEntry[] metaDataEntries, ZipOutputStream out, Context context) {
+        int BUFFER = 2048;
+        byte[] buffer = new byte[BUFFER];
+        try {
             for (MetaDataEntry me : metaDataEntries) {
                 //Create and zip the DataLog file
                 ZipEntry dataLogFile = new ZipEntry(me.rideId + "_accGps.csv");
@@ -104,7 +118,7 @@ public class IOUtils {
 
                 buffer = (Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                 out.write(buffer, 0, buffer.length);
-                for (DataLogEntry de : DataLog.loadDataLogEntriesOfRide(me.rideId, context)) {
+                for (DataLogEntry de : DataLog.loadDataLogEntriesOfRide(me.rideId, context).get()) {
                     buffer = (de.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                     out.write(buffer, 0, buffer.length);
                 }
@@ -135,7 +149,7 @@ public class IOUtils {
                 buffer = (e.stringifyMetaDataEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
                 out.write(buffer, 0, buffer.length);
             }
-            metaDataFile.setTime(metaDataEntries[metaDataEntries.length-1].lastModified);
+            metaDataFile.setTime(metaDataEntries[metaDataEntries.length - 1].lastModified);
             out.closeEntry();
 
             //Zip the shared prefs files
@@ -143,7 +157,6 @@ public class IOUtils {
             File[] sharedPrefs = sharedPrefsDirectory.listFiles();
             if (sharedPrefs != null) {
                 for (File f : Directories.getSharedPrefsDirectory(context).listFiles()) {
-                    Log.d("DEBUG", "File name: "+f.getName());
                     FileInputStream fi = new FileInputStream(f);
                     BufferedInputStream origin = new BufferedInputStream(fi, BUFFER);
                     ZipEntry zipEntry = new ZipEntry(f.getName());
@@ -158,9 +171,8 @@ public class IOUtils {
                 }
             }
             out.close();
-
             return true;
-        } catch (IOException e) {
+        } catch (IOException | ExecutionException | InterruptedException e) {
             e.printStackTrace();
             return false;
         }
@@ -223,69 +235,18 @@ public class IOUtils {
         return lastPathComponent;
     }
 
-    //TODO: Merge similar components to zipToDb into a separate function or use this function in zipToDB
-    public static void zipDb(List<MetaDataEntry> metaDataEntries, Context context) {
-        int BUFFER = 2048;
-        byte[] buffer = new byte[BUFFER];
+    /**
+     * Used for creating a zip archive of data to be uploaded for debug purposes
+     * @param metaDataEntries specify the rides that should be uploaded. Empty if only sharedprefs
+     *                        should be uploaded.
+     * @param context
+     */
+    public static void zipDb(MetaDataEntry[] metaDataEntries, Context context) {
         try {
             FileOutputStream dest = new FileOutputStream(Directories.getBaseFolderPath(context) + "zip.zip");
             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(dest));
-            for (MetaDataEntry me : metaDataEntries) {
-                //Create and zip the DataLog file
-                ZipEntry dataLogFile = new ZipEntry(me.rideId + "_accGps.csv");
-                out.putNextEntry(dataLogFile);
 
-                buffer = (Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
-                out.write(buffer, 0, buffer.length);
-                for (DataLogEntry de : DataLog.loadDataLogEntriesOfRide(me.rideId, context)) {
-                    buffer = (de.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
-                    out.write(buffer, 0, buffer.length);
-                }
-                out.closeEntry();
-
-                //Create and zip the IncidentLog file
-                ZipEntry incidentLogFile = new ZipEntry("accEvents" + me.rideId + ".csv");
-                out.putNextEntry(incidentLogFile);
-
-                IncidentLog incidentLog = IncidentLog.loadIncidentLog(me.rideId, context);
-                buffer = (Files.getFileInfoLine(incidentLog.nn_version) + IncidentLog.INCIDENT_LOG_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
-                out.write(buffer, 0, buffer.length);
-                for (IncidentLogEntry ie : incidentLog.getIncidents().values()) {
-                    buffer = (ie.stringifyDataLogEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
-                    out.write(buffer, 0, buffer.length);
-                }
-                out.closeEntry();
-            }
-            //Create and zip the MetaData file
-            ZipEntry metaDataFile = new ZipEntry("metaData.csv");
-            out.putNextEntry(metaDataFile);
-
-            buffer = (Files.getFileInfoLine() + MetaData.METADATA_HEADER + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
-            out.write(buffer, 0, buffer.length);
-            for (MetaDataEntry e : metaDataEntries) {
-                buffer = (e.stringifyMetaDataEntry() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
-                out.write(buffer, 0, buffer.length);
-            }
-            out.closeEntry();
-
-            //Zip the shared prefs files
-            File sharedPrefsDirectory = Directories.getSharedPrefsDirectory(context);
-            File[] sharedPrefs = sharedPrefsDirectory.listFiles();
-            if (sharedPrefs != null) {
-                for (File f : Directories.getSharedPrefsDirectory(context).listFiles()) {
-                    FileInputStream fi = new FileInputStream(f);
-                    BufferedInputStream origin = new BufferedInputStream(fi, BUFFER);
-                    ZipEntry zipEntry = new ZipEntry(f.getName());
-                    out.putNextEntry(zipEntry);
-
-                    int count;
-                    while ((count = fi.read(buffer)) >= 0) {
-                        out.write(buffer, 0, count);
-                    }
-                }
-            }
-            out.closeEntry();
-            out.close();
+            zip(metaDataEntries, out, context);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -317,7 +278,7 @@ public class IOUtils {
                         if (s.contains("#") || s.contains("lat")) continue;
                         dataLogEntries.add(DataLogEntry.parseDataLogEntryFromLine(s, rideId));
                     }
-                    DataLog.saveDataLogEntries(dataLogEntries, context);
+                    DataLog.saveDataLogEntries(dataLogEntries, context).get();
                     continue;
                 }
                 if (entry.getName().contains("accEvents")) {
@@ -328,19 +289,16 @@ public class IOUtils {
                     String entryWithoutSuffix = entry.getName().replace(".csv", "");
                     int rideId = Integer.parseInt(entryWithoutSuffix.substring(entryWithoutSuffix.length() - 1));
 
-                    //TODO: Fix this if there is still enough time as this is more of a shitshow than it needs to be
+                    //1st line = nn_version
+                    nn_version = Integer.parseInt(stringList.remove(0).split("#", -1)[2]);
+                    //2nd line = header
+                    stringList.remove(0);
                     for (String s : stringList) {
-                        if (s.split("#").length>2) {
-                            nn_version = Integer.parseInt(s.split("#",-1)[2]);
-                            continue;
-                        }
-                        if (s.contains("key")) continue;
                         IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(s);
-                        Log.d("DEBUG", incidentLogEntry.stringifyDataLogEntry());
                         incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
                     }
                     IncidentLog incidentLog = new IncidentLog(rideId, incidentLogEntries, nn_version);
-                    IncidentLog.saveIncidentLog(incidentLog, context);
+                    IncidentLog.saveIncidentLog(incidentLog, context).get();
                     continue;
                 }
                 if (entry.getName().endsWith("metaData.csv")) {
@@ -352,7 +310,7 @@ public class IOUtils {
                         metaDataEntries.add(MetaDataEntry.parseEntryFromLine(s));
                     }
 
-                    MetaData.updateOrAddMetadataEntries(metaDataEntries, context);
+                    MetaData.updateOrAddMetadataEntries(metaDataEntries, context).get();
                     continue;
                 }
                 if (entry.getName().endsWith(".xml")) {
@@ -360,7 +318,7 @@ public class IOUtils {
                     loadSharePrefs(temp, zis, context);
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | ExecutionException | InterruptedException e) {
             e.printStackTrace();
             return false;
         }

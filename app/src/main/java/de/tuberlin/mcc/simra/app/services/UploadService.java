@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -208,124 +209,125 @@ public class UploadService extends Service {
                     regionProfilesList.add(Profile.loadProfile(i, context));
                 }
 
-                //TODO: Test this!
-                MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(context);
+                try {
+                    MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(context).get();
+                    for (MetaDataEntry metaDataEntry : metaDataEntries) {
+                        // found a ride which is ready to upload in metaData.csv
+                        if (metaDataEntry.state.equals(MetaData.STATE.ANNOTATED)) {
+                            foundARideToUpload = true;
+                            // concatenate fileInfoVersion, accEvents and accGps content
+                            Pair<String, IncidentLog> contentToUploadAndAccEventsContentToOverwrite = Utils.getConsolidatedRideForUpload(metaDataEntry.rideId, context);
 
-                for (MetaDataEntry metaDataEntry : metaDataEntries) {
-                    // found a ride which is ready to upload in metaData.csv
-                    if (metaDataEntry.state.equals(MetaData.STATE.ANNOTATED)) {
-                        foundARideToUpload = true;
-                        // concatenate fileInfoVersion, accEvents and accGps content
-                        Pair<String, IncidentLog> contentToUploadAndAccEventsContentToOverwrite = Utils.getConsolidatedRideForUpload(metaDataEntry.rideId, context);
+                            String contentToUpload = contentToUploadAndAccEventsContentToOverwrite.first;
 
-                        String contentToUpload = contentToUploadAndAccEventsContentToOverwrite.first;
+                            String password = lookUpSharedPrefs(String.valueOf(metaDataEntry.rideId), "-1", "keyPrefs", context);
 
-                        String password = lookUpSharedPrefs(String.valueOf(metaDataEntry.rideId), "-1", "keyPrefs", context);
+                            Profile regionProfile = regionProfilesList.get(metaDataEntry.region);
 
-                        Profile regionProfile = regionProfilesList.get(metaDataEntry.region);
+                            Log.d(TAG, "Saved password: " + password);
+                            Pair<Integer, String> response;
+                            // send data with POST, if it is being sent the first time
+                            if (password.equals("-1")) {
+                                Log.d(TAG, "sending ride with POST: " + metaDataEntry.rideId);
+                                response = postFile("ride", contentToUpload, metaDataEntry.region);
 
-                        Log.d(TAG, "Saved password: " + password);
-                        Pair<Integer, String> response;
-                        // send data with POST, if it is being sent the first time
-                        if (password.equals("-1")) {
-                            Log.d(TAG, "sending ride with POST: " + metaDataEntry.rideId);
-                            response = postFile("ride", contentToUpload, metaDataEntry.region);
-
-                            if (response.second.split(",").length >= 2) {
-                                writeToSharedPrefs(String.valueOf(metaDataEntry.rideId), response.second, "keyPrefs", context);
+                                if (response.second.split(",").length >= 2) {
+                                    writeToSharedPrefs(String.valueOf(metaDataEntry.rideId), response.second, "keyPrefs", context);
+                                }
+                                Log.d(TAG, "hashPassword: " + response + " written to keyPrefs");
+                                // send data with PUT, if it is being overwritten on the server
+                            } else {
+                                Log.d(TAG, "sending ride with PUT: " + metaDataEntry.rideId);
+                                String fileHash = password.split(",")[0];
+                                String filePassword = password.split(",")[1];
+                                response = putFile("ride", fileHash, filePassword, contentToUpload, metaDataEntry.region);
+                                Log.d(TAG, "PUT response: " + response);
                             }
-                            Log.d(TAG, "hashPassword: " + response + " written to keyPrefs");
-                            // send data with PUT, if it is being overwritten on the server
-                        } else {
-                            Log.d(TAG, "sending ride with PUT: " + metaDataEntry.rideId);
-                            String fileHash = password.split(",")[0];
-                            String filePassword = password.split(",")[1];
-                            response = putFile("ride", fileHash, filePassword, contentToUpload, metaDataEntry.region);
-                            Log.d(TAG, "PUT response: " + response);
-                        }
 
 
-                        // if the respond is ok, mark ride as uploaded in metaData.csv
-                        if (response.first.equals(200)) {
-                            metaDataEntry.state = MetaData.STATE.SYNCED;
+                            // if the respond is ok, mark ride as uploaded in metaData.csv
+                            if (response.first.equals(200)) {
+                                metaDataEntry.state = MetaData.STATE.SYNCED;
 
-                            //TODO: Test this!
-                            MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, context);
+                                MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, context).get();
 
-                            //Are the metadataEntries updated automatically? Otherwise this does not
-                            //make much sense
-                            globalProfile = updateProfileFromMetaData(globalProfile, metaDataEntry);
-                            regionProfile = updateProfileFromMetaData(regionProfile, metaDataEntry);
+                                //Are the metadataEntries updated automatically? Otherwise this does not
+                                //make much sense
+                                globalProfile = updateProfileFromMetaData(globalProfile, metaDataEntry);
+                                regionProfile = updateProfileFromMetaData(regionProfile, metaDataEntry);
 
-                            regionProfileUpdated[metaDataEntry.region] = true;
-                            regionProfilesList.set(metaDataEntry.region, regionProfile);
+                                regionProfileUpdated[metaDataEntry.region] = true;
+                                regionProfilesList.set(metaDataEntry.region, regionProfile);
+                            }
                         }
                     }
-                }
-                if (!foundARideToUpload) {
-                    Intent intent = new Intent();
-                    intent.setAction("de.tuberlin.mcc.simra.app.UPLOAD_COMPLETE");
-                    intent.putExtra("uploadSuccessful", uploadSuccessful);
-                    intent.putExtra("foundARideToUpload", foundARideToUpload);
-                    sendBroadcast(intent);
-                    stopSelf();
-                    return;
-                }
+                    if (!foundARideToUpload) {
+                        Intent intent = new Intent();
+                        intent.setAction("de.tuberlin.mcc.simra.app.UPLOAD_COMPLETE");
+                        intent.putExtra("uploadSuccessful", uploadSuccessful);
+                        intent.putExtra("foundARideToUpload", foundARideToUpload);
+                        sendBroadcast(intent);
+                        stopSelf();
+                        return;
+                    }
 
-                // Now after the rides have been uploaded, we can update the profile with the new statistics
-                Profile.saveProfile(globalProfile, null, context);
+                    // Now after the rides have been uploaded, we can update the profile with the new statistics
+                    Profile.saveProfile(globalProfile, null, context);
 
-                // update region profiles
-                for (int p = 0; p < regionProfilesList.toArray().length; p++) {
-                    if (regionProfileUpdated[p]) {
-                        Profile regionProfile = regionProfilesList.get(p);
+                    // update region profiles
+                    for (int p = 0; p < regionProfilesList.toArray().length; p++) {
+                        if (regionProfileUpdated[p]) {
+                            Profile regionProfile = regionProfilesList.get(p);
 
-                        Profile.saveProfile(regionProfile, p, context);
+                            Profile.saveProfile(regionProfile, p, context);
 
-                        int profileVersion = lookUpIntSharedPrefs("Version", 1, "Profile_" + p, context);
-                        StringBuilder profileContentToSend = new StringBuilder().append(BuildConfig.VERSION_CODE).append("#").append(profileVersion).append(System.lineSeparator());
-                        profileContentToSend
-                                .append(Constants.PROFILE_HEADER)
-                                .append(globalProfile.ageGroup).append(",")
-                                .append(globalProfile.gender).append(",")
-                                .append(globalProfile.region).append(",")
-                                .append(globalProfile.experience).append(",")
-                                .append(regionProfile.numberOfRides).append(",")
-                                .append(regionProfile.duration).append(",")
-                                .append(regionProfile.numberOfIncidents).append(",")
-                                .append(regionProfile.waitedTime).append(",")
-                                .append(regionProfile.distance).append(",")
-                                .append(regionProfile.co2).append(",");
-                        for (int i = 0; i < 24; i++) {
-                            profileContentToSend.append(regionProfile.timeDistribution.get(i)).append(",");
-                        }
-                        profileContentToSend.append(globalProfile.behaviour).append(",");
-                        profileContentToSend.append(regionProfile.numberOfScaryIncidents);
+                            int profileVersion = lookUpIntSharedPrefs("Version", 1, "Profile_" + p, context);
+                            StringBuilder profileContentToSend = new StringBuilder().append(BuildConfig.VERSION_CODE).append("#").append(profileVersion).append(System.lineSeparator());
+                            profileContentToSend
+                                    .append(Constants.PROFILE_HEADER)
+                                    .append(globalProfile.ageGroup).append(",")
+                                    .append(globalProfile.gender).append(",")
+                                    .append(globalProfile.region).append(",")
+                                    .append(globalProfile.experience).append(",")
+                                    .append(regionProfile.numberOfRides).append(",")
+                                    .append(regionProfile.duration).append(",")
+                                    .append(regionProfile.numberOfIncidents).append(",")
+                                    .append(regionProfile.waitedTime).append(",")
+                                    .append(regionProfile.distance).append(",")
+                                    .append(regionProfile.co2).append(",");
+                            for (int i = 0; i < 24; i++) {
+                                profileContentToSend.append(regionProfile.timeDistribution.get(i)).append(",");
+                            }
+                            profileContentToSend.append(globalProfile.behaviour).append(",");
+                            profileContentToSend.append(regionProfile.numberOfScaryIncidents);
 
-                        String profilePassword = lookUpSharedPrefs("Profile_" + p, "-1", "keyPrefs", context);
-                        Log.d(TAG, "Saved password: " + profilePassword);
-                        if (profilePassword.equals("-1")) {
-                            Log.d(TAG, "sending profile with POST: " + profileContentToSend.toString());
-                            String hashPassword = postFile("profile", profileContentToSend.toString(), p).second;
-                            if (hashPassword.split(",").length >= 2) {
-                                writeToSharedPrefs("Profile_" + p, hashPassword, "keyPrefs", context);
+                            String profilePassword = lookUpSharedPrefs("Profile_" + p, "-1", "keyPrefs", context);
+                            Log.d(TAG, "Saved password: " + profilePassword);
+                            if (profilePassword.equals("-1")) {
+                                Log.d(TAG, "sending profile with POST: " + profileContentToSend.toString());
+                                String hashPassword = postFile("profile", profileContentToSend.toString(), p).second;
+                                if (hashPassword.split(",").length >= 2) {
+                                    writeToSharedPrefs("Profile_" + p, hashPassword, "keyPrefs", context);
+                                    writeIntToSharedPrefs("Version", profileVersion + 1, "Profile", context);
+                                }
+                                Log.d(TAG, "hashPassword: " + hashPassword + " written to keyPrefs");
+                            } else {
+                                Log.d(TAG, "sending profile with PUT: " + profileContentToSend.toString());
+                                String[] fileHashPassword = profilePassword.split(",");
+                                String fileHash = "-1";
+                                String filePassword = "-1";
+                                if (fileHashPassword.length >= 2) {
+                                    fileHash = profilePassword.split(",")[0];
+                                    filePassword = profilePassword.split(",")[1];
+                                }
+                                String response = putFile("profile", fileHash, filePassword, profileContentToSend.toString(), p).second;
                                 writeIntToSharedPrefs("Version", profileVersion + 1, "Profile", context);
+                                Log.d(TAG, "PUT response: " + response);
                             }
-                            Log.d(TAG, "hashPassword: " + hashPassword + " written to keyPrefs");
-                        } else {
-                            Log.d(TAG, "sending profile with PUT: " + profileContentToSend.toString());
-                            String[] fileHashPassword = profilePassword.split(",");
-                            String fileHash = "-1";
-                            String filePassword = "-1";
-                            if (fileHashPassword.length >= 2) {
-                                fileHash = profilePassword.split(",")[0];
-                                filePassword = profilePassword.split(",")[1];
-                            }
-                            String response = putFile("profile", fileHash, filePassword, profileContentToSend.toString(), p).second;
-                            writeIntToSharedPrefs("Version", profileVersion + 1, "Profile", context);
-                            Log.d(TAG, "PUT response: " + response);
                         }
                     }
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }

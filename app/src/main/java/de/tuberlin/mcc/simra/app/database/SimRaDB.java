@@ -23,24 +23,15 @@ public abstract class SimRaDB extends RoomDatabase {
 
     private static volatile SimRaDB INSTANCE;
 
-    // Is it smart to set the number of threads to a fixed amount and what is this used for anyways?
-    private static final int NUMBER_OF_THREADS = 4;
-    static final ExecutorService databaseWriteExecutor = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+    public static final ExecutorService databaseWriteExecutor = Executors
+            .newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     public static SimRaDB getDataBase(final Context context) {
         if (INSTANCE == null) {
             synchronized (SimRaDB.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = Room
-                            .databaseBuilder(context.getApplicationContext(), SimRaDB.class, "SimRaDB")
-                            //TODO: Potentially change this if performance isn't good.
-                            // ->This can potentially lock up the main thread and using asynchronous
-                            // operations is advised.
-                            // ->Need to look into properly doing that while making sure that
-                            // the operations finish in time
-                            .allowMainThreadQueries()
-                            .build();
-                }
+                INSTANCE = Room
+                        .databaseBuilder(context.getApplicationContext(), SimRaDB.class, "SimRaDB")
+                        .build();
             }
         }
         return INSTANCE;

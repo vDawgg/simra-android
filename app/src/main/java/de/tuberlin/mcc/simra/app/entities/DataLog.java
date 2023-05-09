@@ -2,12 +2,18 @@ package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
 import android.location.Location;
+import android.util.Log;
+
+import androidx.room.Database;
 
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import de.tuberlin.mcc.simra.app.database.DataLogDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
@@ -41,35 +47,37 @@ public class DataLog {
         return loadDataLogFromDB(rideId, null, null, context);
     }
 
-    //TODO: Use SQL for this
     public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
         long startTime = 0;
         long endTime = 0;
 
-        SimRaDB db = SimRaDB.getDataBase(context);
-        DataLogDao dao = db.getDataLogDao();
+        try {
+            DataLogEntry[] entries = SimRaDB.databaseWriteExecutor.submit(() ->
+                    SimRaDB.getDataBase(context).getDataLogDao().loadAllEntriesOfRide(rideId)).get();
 
-        DataLogEntry[] entries = dao.loadAllEntriesOfRide(rideId);
-
-        if (entries.length > 0) {
-            for (DataLogEntry entry : entries) {
-                if (Utils.isInTimeFrame(startTimeBoundary, endTimeBoundary, entry.timestamp)) {
-                    dataPoints.add(entry);
-                    if (entry.longitude != null && entry.latitude != null) {
-                        onlyGPSDataLogEntries.add(entry);
+            if (entries.length > 0) {
+                for (DataLogEntry entry : entries) {
+                    if (Utils.isInTimeFrame(startTimeBoundary, endTimeBoundary, entry.timestamp)) {
+                        dataPoints.add(entry);
+                        if (entry.longitude != null && entry.latitude != null) {
+                            onlyGPSDataLogEntries.add(entry);
+                        }
                     }
                 }
+                startTime = dataPoints.get(0).timestamp;
+                endTime = dataPoints.get(dataPoints.size() - 1).timestamp;
             }
-            startTime = dataPoints.get(0).timestamp;
-            endTime = dataPoints.get(dataPoints.size() - 1).timestamp;
+
+            RideAnalysisData rideAnalysisData = RideAnalysisData.
+                    calculateRideAnalysisData(onlyGPSDataLogEntries);
+
+            return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
         }
-
-        RideAnalysisData rideAnalysisData = RideAnalysisData.
-                calculateRideAnalysisData(onlyGPSDataLogEntries);
-
-        return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
     /**
@@ -78,8 +86,9 @@ public class DataLog {
      * @param context
      * @return An array containing all relevant DataLogEntries
      */
-    public static DataLogEntry[] loadDataLogEntriesOfRide(int rideId, Context context) {
-        return SimRaDB.getDataBase(context).getDataLogDao().loadAllEntriesOfRide(rideId);
+    public static Future<DataLogEntry[]> loadDataLogEntriesOfRide(int rideId, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getDataLogDao().loadAllEntriesOfRide(rideId));
     }
 
     /**
@@ -90,8 +99,9 @@ public class DataLog {
      * @param endTime
      * @param context
      */
-    public static void updateDataLogBoundaries(int rideId, long startTime, long endTime, Context context) {
-        SimRaDB.getDataBase(context).getDataLogDao().updateDataLogBoundaries(rideId, startTime, endTime);
+    public static Future<?> updateDataLogBoundaries(int rideId, long startTime, long endTime, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getDataLogDao().updateDataLogBoundaries(rideId, startTime, endTime));
     }
 
     /**
@@ -99,8 +109,15 @@ public class DataLog {
      * @param entries The list of DataLogEntries
      * @param context
      */
-    public static void saveDataLogEntries(List<DataLogEntry> entries, Context context) {
-        SimRaDB.getDataBase(context).getDataLogDao().insertDataLogEntries(entries);
+    public static Future<?> saveDataLogEntries(List<DataLogEntry> entries, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                long start = System.nanoTime();
+                SimRaDB.getDataBase(context).getDataLogDao().insertDataLogEntries(entries);
+                Log.d("BENCHMARK", "Time to save datalog: "+(System.nanoTime() - start)+"in ns");
+            }
+        });
     }
 
     /**
@@ -108,8 +125,9 @@ public class DataLog {
      * @param rideId
      * @param context
      */
-    public static void deleteEntriesOfRide(int rideId, Context context) {
-        SimRaDB.getDataBase(context).getDataLogDao().deleteEntriesOfRide(rideId);
+    public static Future<?> deleteEntriesOfRide(int rideId, Context context) {
+        return SimRaDB.databaseWriteExecutor.submit(() ->
+                SimRaDB.getDataBase(context).getDataLogDao().deleteEntriesOfRide(rideId));
     }
 
     @Override

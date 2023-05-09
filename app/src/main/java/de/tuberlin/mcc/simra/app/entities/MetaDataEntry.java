@@ -2,12 +2,16 @@ package de.tuberlin.mcc.simra.app.entities;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
+import androidx.room.Fts4;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+@Fts4
 @Entity(tableName = "metadata_table")
 public class MetaDataEntry {
-    //TODO: Find out if this really should be the prim-key
-    @PrimaryKey
+    @Ignore
+    @PrimaryKey(autoGenerate = true)
+    public Integer rowid;
     @NonNull
     public Integer rideId;
     public Long startTime;
@@ -60,7 +64,6 @@ public class MetaDataEntry {
         return rideId + "," + startTime + "," + endTime + "," + state + "," + numberOfIncidents + "," + waitedTime + "," + distance + "," + numberOfScaryIncidents + "," + region;
     }
 
-    //TODO: Check if this could/should be an override!
     public String[] metaDataEntryToArray() {
         String[] s = new String[9];
         s[0] = rideId.toString();

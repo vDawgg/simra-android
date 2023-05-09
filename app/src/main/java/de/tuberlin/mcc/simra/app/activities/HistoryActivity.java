@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutionException;
 
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.databinding.ActivityHistoryBinding;
@@ -116,25 +117,31 @@ public class HistoryActivity extends BaseActivity {
      * newest to oldest)
      */
     private void refreshMyRides() {
-        long start = System.currentTimeMillis();
-        MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this);
-        long end = System.currentTimeMillis();
-        Log.d("BENCHMARK", "Reading metadataLog took: " + (end-start) + " (in ms)");
+        try {
+            long start = System.currentTimeMillis();
+            MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this).get();
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Reading metadataLog took: " + (end-start) + " (in ms)");
 
-        if (metaDataEntries.length > 0) {
-            List<String> stringArrayList = new ArrayList<>();
-            for (MetaDataEntry me : metaDataEntries) {
-                stringArrayList.add(getRideString(me));
+            if (metaDataEntries.length > 0) {
+                List<String> stringArrayList = new ArrayList<>();
+                for (MetaDataEntry me : metaDataEntries) {
+                    stringArrayList.add(getRideString(me));
+                }
+
+                List<String[]> metaDataLines = new ArrayList<>();
+                for (MetaDataEntry entry : metaDataEntries) {
+                    metaDataLines.add(entry.metaDataEntryToArray());
+                }
+
+                MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
+                binding.listView.setAdapter(myAdapter);
+            } else {
+                Snackbar snackbar = Snackbar.make(findViewById(R.id.coordinator_layout), (getString(R.string.noHistory)), Snackbar.LENGTH_LONG);
+                snackbar.show();
             }
-
-            List<String[]> metaDataLines = new ArrayList<>();
-            for (MetaDataEntry entry : metaDataEntries) {
-                metaDataLines.add(entry.metaDataEntryToArray());
-            }
-
-            MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
-            binding.listView.setAdapter(myAdapter);
-        } else {
+        } catch (ExecutionException |  InterruptedException e) {
+            e.printStackTrace();
             Snackbar snackbar = Snackbar.make(findViewById(R.id.coordinator_layout), (getString(R.string.noHistory)), Snackbar.LENGTH_LONG);
             snackbar.show();
         }
@@ -188,34 +195,37 @@ public class HistoryActivity extends BaseActivity {
         alert.setTitle(getString(R.string.warning));
         alert.setMessage(getString(R.string.delete_file_warning));
         alert.setPositiveButton(R.string.delete_ride_approve, (dialog, id) -> {
-            String clicked = (String) binding.listView.getItemAtPosition(position);
-            Log.d(TAG, "btnDelete.onClick() clicked: " + clicked);
-            clicked = clicked.replace("#", "").split(";")[0];
+            try {
+                String clicked = (String) binding.listView.getItemAtPosition(position);
+                Log.d(TAG, "btnDelete.onClick() clicked: " + clicked);
+                clicked = clicked.replace("#", "").split(";")[0];
 
-            int rideId = Integer.parseInt(clicked);
+                int rideId = Integer.parseInt(clicked);
 
-            long start = System.currentTimeMillis();
-            MetaData.deleteMetadataEntryForRide(rideId, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Deleting metadataLog took: " + (end-start) + " (in ms)");
+                long start = System.currentTimeMillis();
+                MetaData.deleteMetadataEntryForRide(rideId, this).get();
+                long end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Deleting metadataLog took: " + (end-start) + " (in ms)");
 
-            start = System.currentTimeMillis();
-            DataLog.deleteEntriesOfRide(rideId, this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Deleting dataLog took: " + (end-start) + " (in ms)");
+                start = System.currentTimeMillis();
+                DataLog.deleteEntriesOfRide(rideId, this).get();
+                end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Deleting dataLog took: " + (end-start) + " (in ms)");
 
-            start = System.currentTimeMillis();
-            IncidentLog.deleteIncidentsOfRide(rideId, this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Deleting incidentLog took: " + (end-start) + " (in ms)");
+                start = System.currentTimeMillis();
+                IncidentLog.deleteIncidentsOfRide(rideId, this).get();
+                end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Deleting incidentLog took: " + (end-start) + " (in ms)");
 
-            Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
-            refreshMyRides();
+                Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
+                refreshMyRides();
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
         });
         alert.setNegativeButton(R.string.cancel, (dialog, id) -> {
         });
         alert.show();
-
     }
 
     public void fireUploadPrompt() {
@@ -324,8 +334,13 @@ public class HistoryActivity extends BaseActivity {
                 String clicked = (String) binding.listView.getItemAtPosition(position);
                 int rideID = Integer.parseInt(clicked.replace("#", "").split(";")[0]);
 
-                MetaDataEntry entry = MetaData.getMetadataEntryForRide(rideID, HistoryActivity.this);
-                ShowRouteActivity.startShowRouteActivity(rideID, entry.state, true, HistoryActivity.this);
+                MetaDataEntry entry;
+                try {
+                    entry = MetaData.getMetadataEntryForRide(rideID, HistoryActivity.this).get();
+                    ShowRouteActivity.startShowRouteActivity(rideID, entry.state, true, HistoryActivity.this);
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
             });
 
             holder.btnDelete.setOnClickListener(v -> {

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
 
 import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
 
@@ -471,14 +472,14 @@ public class VersionUpdater {
                         while ((accGpsLine = accGpsReader.readLine()) != null) {
                             dataLogEntries.add(DataLogEntry.parseDataLogEntryFromLine(accGpsLine, rideId));
                         }
-                        DataLog.saveDataLogEntries(dataLogEntries, context);
+                        DataLog.saveDataLogEntries(dataLogEntries, context).get();
                         accGpsFile.delete();
-                    } catch (IOException e) {
+                    } catch (IOException | ExecutionException | InterruptedException e) {
                         e.printStackTrace();
                     }
 
                     //Parse through the accEvents File for the rideId of the current MetaDataEntry
-                    // and writ
+                    // and write the entries to the db
                     File accEventsFile = context.getFileStreamPath("accEvents" + rideId + ".csv");
                     try (BufferedReader accEventsReader = new BufferedReader(new InputStreamReader(new FileInputStream(accEventsFile)))) {
                         TreeMap<Integer, IncidentLogEntry> incidentLogEntries = new TreeMap<>();
@@ -490,18 +491,18 @@ public class VersionUpdater {
                             IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(accEventsLine);
                             incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
                         }
-                        IncidentLog.saveIncidentLog(new IncidentLog(rideId, incidentLogEntries, nn_version), context);
+                        IncidentLog.saveIncidentLog(new IncidentLog(rideId, incidentLogEntries, nn_version), context).get();
                         accEventsFile.delete();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
                     metaDataEntries.add(MetaDataEntry.parseEntryFromLine(line));
-                    MetaData.updateOrAddMetadataEntries(metaDataEntries, context);
+                    MetaData.updateOrAddMetadataEntries(metaDataEntries, context).get();
 
                     metaDataFile.delete();
                 }
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
         }

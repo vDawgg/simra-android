@@ -40,8 +40,10 @@ import org.osmdroid.views.overlay.Polyline;
 import org.osmdroid.views.overlay.infowindow.InfoWindow;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import de.tuberlin.mcc.simra.app.R;
@@ -384,37 +386,40 @@ public class ShowRouteActivity extends BaseActivity {
     }
 
     private void saveChanges() {
-        // Save incidents
-        incidentLog = IncidentLog.filterIncidentLogUploadReady(incidentLog,bike,child == 1,trailer == 1,pLoc,false);
-        IncidentLog.saveIncidentLog(incidentLog, this);
+        try {
+            // Save incidents
+            incidentLog = IncidentLog.filterIncidentLogUploadReady(incidentLog,bike,child == 1,trailer == 1,pLoc,false);
+            IncidentLog.saveIncidentLog(incidentLog, this).get();
 
-        // Update the route if the boundaries where changed
-        if (end != 0) {
-            long startTime = this.originalDataLog.onlyGPSDataLogEntries.get(start).timestamp;
-            long endTime = this.originalDataLog.onlyGPSDataLogEntries.get(end).timestamp;
+            // Update the route if the boundaries where changed
+            if (end != 0) {
+                long startTime = this.originalDataLog.onlyGPSDataLogEntries.get(start).timestamp;
+                long endTime = this.originalDataLog.onlyGPSDataLogEntries.get(end).timestamp;
 
-            long start = System.currentTimeMillis();
-            DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Updating DataLog took: "+(end-start)+" ms");
+                long start = System.currentTimeMillis();
+                DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this).get();
+                long end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Updating DataLog took: "+(end-start)+" ms");
+            }
+
+            MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this).get();
+
+            metaDataEntry.startTime = dataLog.startTime;
+            metaDataEntry.endTime = dataLog.endTime;
+            metaDataEntry.distance = dataLog.rideAnalysisData.distance;
+            metaDataEntry.waitedTime = dataLog.rideAnalysisData.waitedTime;
+            metaDataEntry.numberOfIncidents = incidentLog.getIncidentNumberWithoutRideSettingsIncident();
+            metaDataEntry.numberOfScaryIncidents = IncidentLog.getScaryIncidents(incidentLog).size();
+            metaDataEntry.region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
+            metaDataEntry.state = MetaData.STATE.ANNOTATED;
+            metaDataEntry.lastModified = System.currentTimeMillis();
+
+            MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, this).get();
+
+            Toast.makeText(this, getString(R.string.savedRide), Toast.LENGTH_SHORT).show();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
         }
-
-        // Update MetaData
-        MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this);
-
-        metaDataEntry.startTime = dataLog.startTime;
-        metaDataEntry.endTime = dataLog.endTime;
-        metaDataEntry.distance = dataLog.rideAnalysisData.distance;
-        metaDataEntry.waitedTime = dataLog.rideAnalysisData.waitedTime;
-        metaDataEntry.numberOfIncidents = incidentLog.getIncidentNumberWithoutRideSettingsIncident();
-        metaDataEntry.numberOfScaryIncidents = IncidentLog.getScaryIncidents(incidentLog).size();
-        metaDataEntry.region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
-        metaDataEntry.state = MetaData.STATE.ANNOTATED;
-        metaDataEntry.lastModified = System.currentTimeMillis();
-
-        MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, this);
-
-        Toast.makeText(this, getString(R.string.savedRide), Toast.LENGTH_SHORT).show();
         finish();
     }
 
@@ -636,8 +641,6 @@ public class ShowRouteActivity extends BaseActivity {
             originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
             long end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Reading datalog took: " + (end-start) + " (in ms)");
-
-            Log.d("DEBUG", "OG-DL-size: "+originalDataLog.dataLogEntries.size());
 
             Polyline originalRoute = originalDataLog.rideAnalysisData.route;
 

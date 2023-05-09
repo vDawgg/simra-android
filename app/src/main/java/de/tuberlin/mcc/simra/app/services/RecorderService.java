@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
 
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
@@ -354,30 +355,30 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             int region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
             addOBSIncidents(obsMeasurements, incidentLog, gpsLines, this);
 
-            //TODO: Change the wording as it does not make much sense for the db (e.g. 'lines'->'rows')
-            //accGpsString = mergeGPSandSensorLines(gpsLines,sensorLines);
             List<DataLogEntry> acc = mergeGPSAndSensor(gpsLines, sensorLines);
             Log.d("DEBUG", acc.toString());
 
-            //TODO: Try to improve this if possible as this write currently takes 1027ms compared to
-            // the old csv implementation which took 12 ms!
             long start = System.currentTimeMillis();
-            DataLog.saveDataLogEntries(acc, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
+            try {
+                DataLog.saveDataLogEntries(acc, this);//.get();
+                long end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
 
-            start = System.currentTimeMillis();
-            MetaData.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region, System.currentTimeMillis()), this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing metaDataLog took: " + (end-start) + " (in ms)");
+                start = System.currentTimeMillis();
+                MetaData.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region, System.currentTimeMillis()), this).get();
+                end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Writing metaDataLog took: " + (end-start) + " (in ms)");
 
-            start = System.currentTimeMillis();
-            IncidentLog.saveIncidentLog(incidentLog, this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing incidentLog took: " + (end-start) + " (in ms)");
+                start = System.currentTimeMillis();
+                IncidentLog.saveIncidentLog(incidentLog, this).get();
+                end = System.currentTimeMillis();
+                Log.d("BENCHMARK", "Writing incidentLog took: " + (end-start) + " (in ms)");
 
-            editor.putInt("RIDE-KEY", key + 1);
-            editor.apply();
+                editor.putInt("RIDE-KEY", key + 1);
+                editor.apply();
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         // Unregister receiver and listener prior to gpsExecutor shutdown
@@ -505,7 +506,6 @@ public class RecorderService extends Service implements SensorEventListener, Loc
 
             if (accelerometerQueueX.size() >= 30 && linearAccelerometerQueueX.size() >= 30 && rotationQueueX.size() >= 30) {
                 DataLogEntry.DataLogEntryBuilder dataLogEntryBuilder = DataLogEntry.newBuilder();
-                //TODO: Check if the correct key is inserted!
                 dataLogEntryBuilder.withRideId(key);
                 long lastAccUpdate = System.currentTimeMillis();
                 dataLogEntryBuilder.withTimestamp(lastAccUpdate);

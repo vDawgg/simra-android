@@ -3,6 +3,8 @@ package de.tuberlin.mcc.simra.app.entities;
 import androidx.annotation.NonNull;
 import androidx.room.Embedded;
 import androidx.room.Entity;
+import androidx.room.Fts4;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 import java.io.Serializable;
@@ -10,10 +12,12 @@ import java.util.Arrays;
 
 import de.tuberlin.mcc.simra.app.util.Utils;
 
+@Fts4
 @Entity(tableName = "incident_table")
 public class IncidentLogEntry implements Serializable {
+    @Ignore
     @PrimaryKey(autoGenerate = true)
-    public Integer id;
+    public Integer rowid;
     public Integer key;
     @NonNull
     public Integer rideId;
