@@ -41,7 +41,6 @@ public class DataLog {
         return loadDataLogFromDB(rideId, null, null, context);
     }
 
-    //TODO: Use SQL for this
     public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();

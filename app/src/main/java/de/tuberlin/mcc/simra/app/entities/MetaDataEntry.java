@@ -2,11 +2,11 @@ package de.tuberlin.mcc.simra.app.entities;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "metadata_table")
+@Entity(tableName = "metadata_table", indices = {@Index("lastModified")})
 public class MetaDataEntry {
-    //TODO: Find out if this really should be the prim-key
     @PrimaryKey
     @NonNull
     public Integer rideId;
@@ -60,7 +60,6 @@ public class MetaDataEntry {
         return rideId + "," + startTime + "," + endTime + "," + state + "," + numberOfIncidents + "," + waitedTime + "," + distance + "," + numberOfScaryIncidents + "," + region;
     }
 
-    //TODO: Check if this could/should be an override!
     public String[] metaDataEntryToArray() {
         String[] s = new String[9];
         s[0] = rideId.toString();

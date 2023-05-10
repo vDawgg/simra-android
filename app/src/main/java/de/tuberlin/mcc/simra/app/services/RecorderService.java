@@ -354,13 +354,10 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             int region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
             addOBSIncidents(obsMeasurements, incidentLog, gpsLines, this);
 
-            //TODO: Change the wording as it does not make much sense for the db (e.g. 'lines'->'rows')
             //accGpsString = mergeGPSandSensorLines(gpsLines,sensorLines);
             List<DataLogEntry> acc = mergeGPSAndSensor(gpsLines, sensorLines);
             Log.d("DEBUG", acc.toString());
 
-            //TODO: Try to improve this if possible as this write currently takes 1027ms compared to
-            // the old csv implementation which took 12 ms!
             long start = System.currentTimeMillis();
             DataLog.saveDataLogEntries(acc, this);
             long end = System.currentTimeMillis();
@@ -505,7 +502,6 @@ public class RecorderService extends Service implements SensorEventListener, Loc
 
             if (accelerometerQueueX.size() >= 30 && linearAccelerometerQueueX.size() >= 30 && rotationQueueX.size() >= 30) {
                 DataLogEntry.DataLogEntryBuilder dataLogEntryBuilder = DataLogEntry.newBuilder();
-                //TODO: Check if the correct key is inserted!
                 dataLogEntryBuilder.withRideId(key);
                 long lastAccUpdate = System.currentTimeMillis();
                 dataLogEntryBuilder.withTimestamp(lastAccUpdate);

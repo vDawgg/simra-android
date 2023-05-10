@@ -3,10 +3,10 @@ package de.tuberlin.mcc.simra.app.entities;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-//TODO: Think about full-text search or indexes
-@Entity(tableName = "data_log_table")
+@Entity(tableName = "data_log_table", indices = {@Index("timestamp")})
 public class DataLogEntry {
     //private static final String TAG = "DataLogEntry_LOG:";
 

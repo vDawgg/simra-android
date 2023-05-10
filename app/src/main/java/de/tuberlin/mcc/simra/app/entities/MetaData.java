@@ -12,12 +12,13 @@ import de.tuberlin.mcc.simra.app.database.SimRaDB;
 // is not as easily replaceable
 /**
  * //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * // META-FILE (one per user): contains ...
+ * // METADATA: contains ...
  * // * the information required to display rides in the ride history (See RecorderService)
  * //   (DATE,START TIME, END TIME, ANNOTATED TRUE/FALSE)
  * // * the RIDE KEY which allows to identify the file containing the complete data for
  * //   a ride. => Use case: user wants to view a ride from history - retrieve data
- * // * one meta file per user, so we only want to create it if it doesn't exist yet.
+ * // * the RIDE KEY which allows to identify the the actual ride-data containing the complete data
+ * //   for a ride. => Use case: user wants to view a ride from history - retrieve data
  */
 public class MetaData {
     public final static String METADATA_HEADER = "key,startTime,endTime,state,numberOfIncidents,waitedTime,distance,numberOfScary,region";
@@ -82,7 +83,6 @@ public class MetaData {
         SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId);
     }
 
-    //TODO: Check if this should really be here and not in MetaDataEntry
     public static class STATE {
         /**
          * The ride is saved locally and was not yet annotated
