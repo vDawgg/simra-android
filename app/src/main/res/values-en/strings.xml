@@ -27,7 +27,8 @@
     <string name="close_simra">Close SimRa</string>
     <string name="iAccept">I accept the privacy policy statement</string>
     <string name="privacyAgreementTitle">Privacy Policy Statement</string>
-    <string name="privacyAgreementMessage">SimRa records your location and sensor data in the background, when you start the recording of your ride. as well as demographics provided by you to show you your rides recorded with SimRa. For more information please read our <a href="https://www.mcc.tu-berlin.de/menue/forschung/projekte/simra/parameter/en/?isMobile=1">privacy policy statement</a>).</string>
+    <string name="privacyAgreementMessage">SimRa records your location and sensor data in the background, when you start the recording of your ride. as well as demographics provided by you to show you your rides recorded with SimRa. For more information please read our <a href="https://www.tu.berlin/en/mcc/research/projects/simra-privacy-policy-statement">privacy policy statement</a>.</string>
+    <string name="privacyUpdateAgreementMessage">We have updated our privacy policy. The only changes are a) providing more details on data handling and b) describing our optional features such as AI-based incident detection, OpenBikeSensor. You can find all details <a href="https://www.tu.berlin/en/mcc/research/projects/simra-privacy-policy-statement">here</a>.</string>
 
     <!--- Menu -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -51,8 +52,8 @@
     <!--- WebActivity -->
     <string name="link_mcc_Page">https://www.mcc.tu-berlin.de/menue/aktuelles/parameter/en/?isMobile=1</string>
     <string name="link_simra_Page">https://www.digital-future.berlin/en/research/projects/simra/</string>
-    <string name="link_to_tutorial">http://www.redaktion.tu-berlin.de/fileadmin/fg344/simra/SimRa_Instructions.pdf</string>
-    <string name="tuberlin_impressum">https://www.tu-berlin.de/servicemenue/impressum/parameter/en/mobil/</string>
+    <string name="link_to_tutorial">https://tubcloud.tu-berlin.de/s/bQK6GemBMoXpbZT/download/SimRa_Instructions_EN.pdf</string>
+    <string name="tuberlin_impressum">https://www.tu.berlin/en/site-credits</string>
     <string name="link_to_instagram">https://www.instagram.com/sicherheitimradverkehr/</string>
     <string name="link_simra_Dashboard">https://simra-project.github.io/dashboard/</string>
 
@@ -172,7 +173,7 @@
 
     <!--- About -->
     <string name="notReady">Do you want to leave the annotation unfinished?</string>
-    <string name="privacyLink">https://www.mcc.tu-berlin.de/menue/research/projects/simra/privacy_policy_statement/parameter/en?isMobile=1</string>
+    <string name="privacyLink">https://www.tu.berlin/en/mcc/research/projects/simra-privacy-policy-statement</string>
 
     <!--- Settings -->
     <string name="privacyDurationDescription">The delay after which the recording starts (in seconds)</string>
@@ -194,13 +195,15 @@
     <string name="importPromptTitle">Import data from previously exported SimRa data</string>
     <string name="importButtonText">Please choose the "SimRa.zip" file previously created with the export feature in simRa. This will import all rides, statistics and settings from that file. WARNING! This will delete/overwrite all existing rides, statistics and settings.</string>
     <string name="importFile">Please navigate to the directory containing "SimRa.zip" and select it.</string>
-    <string name="importDone">Data imported.</string>
+    <string name="importSuccess">Data imported.</string>
+    <string name="importFail">Error: Data import failed.</string>
     <string name="ok">Okay</string>
     <string name="exportTitle">Export Data</string>
     <string name="exportPromptTitle">Export SimRa data</string>
     <string name="exportButtonText">Please give the location where to save the "SimRa.zip" file. This file can be used to import your rides, statistics and settings to another Android phone. </string>
     <string name="exportDirectory">Where shall SimRa.zip be saved?</string>
-    <string name="exportToast">"SimRa file for import was successfully created."</string>
+    <string name="exportSuccessToast">"SimRa file for import was successfully created."</string>
+    <string name="exportFailToast">"Error: Could not create SimRa file for import."</string>
     <string name="dateFormatDescription">Date Format</string>
     <string name="germanDate">dd.mm.yy, hh:mm</string>
     <string name="englishDate">mm/dd/yy, hh:mm (AM/PM)</string>

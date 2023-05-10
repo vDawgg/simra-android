@@ -27,8 +27,8 @@
     <string name="close_simra">SimRa beenden</string>
     <string name="iAccept">Ich akzeptiere die Datenschutzerklärung</string>
     <string name="privacyAgreementTitle">Datenschutzerklärung</string>
-    <string name="privacyAgreementMessage">SimRa zeichnet während der Fahrtaufzeichnung Standort- und Sensordaten im Hintergrund auf, sowie von dir eingegebene demografische Daten, um dir deine mit SimRa aufgezeichneten Fahrten anzeigen zu können. Weitere Informationen findest du in unserer <a href="https://www.mcc.tu-berlin.de/menue/forschung/projekte/simra/datenschutzerklaerung/parameter/de/?isMobile=1">Datenschutzerklärung</a>.
-    </string>
+    <string name="privacyAgreementMessage">SimRa zeichnet während der Fahrtaufzeichnung Standort- und Sensordaten im Hintergrund auf, sowie von dir eingegebene demografische Daten, um dir deine mit SimRa aufgezeichneten Fahrten anzeigen zu können. Weitere Informationen findest du in unserer <a href="https://www.tu.berlin/mcc/forschung/projekte/simra-datenschutzerklaerung">Datenschutzerklärung</a>.</string>
+    <string name="privacyUpdateAgreementMessage">Wir haben unsere Datenschutzerklärung aktualisiert. Neu sind nur a) mehr präzise Details zur Datenverarbeitung und b) die Ergänzung der optionalen Features wie KI-basierte Erkennung und OpenBikeSensor. Weitere Infos findest du <a href="https://www.tu.berlin/mcc/forschung/projekte/simra-datenschutzerklaerung">hier</a>.</string>
 
     <!--- Menu -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -52,8 +52,8 @@
     <!--- WebActivity -->
     <string name="link_mcc_Page">https://www.mcc.tu-berlin.de/menue/aktuelles/?isMobile=1</string>
     <string name="link_simra_Page">https://www.digital-future.berlin/forschung/projekte/simra/</string>
-    <string name="link_to_tutorial">http://www.redaktion.tu-berlin.de/fileadmin/fg344/simra/SimRa_Anleitung.pdf</string>
-    <string name="tuberlin_impressum">https://www.tu-berlin.de/servicemenue/impressum/parameter/mobil/</string>
+    <string name="link_to_tutorial">https://tubcloud.tu-berlin.de/s/ACwzKWzF6geCd7p/download/SimRa_Instructions_DE.pdf</string>
+    <string name="tuberlin_impressum">https://www.tu.berlin/impressum</string>
 
 
     <!--- MainActivity -->
@@ -182,7 +182,7 @@
 
     <!--- About -->
     <string name="notReady">Möchtest du die Bearbeitung unfertig beenden?</string>
-    <string name="privacyLink">https://www.mcc.tu-berlin.de/menue/forschung/projekte/simra/datenschutzerklaerung/parameter/de/?isMobile=1</string>
+    <string name="privacyLink">https://www.tu.berlin/mcc/forschung/projekte/simra-datenschutzerklaerung</string>
 
     <!--- Settings -->
     <string name="privacyDurationDescription">Verzögerung des Aufnahmestarts (in Sekunden)</string>
@@ -204,13 +204,15 @@
     <string name="importPromptTitle">Datenimport von zuvor exportierten SimRa-Daten</string>
     <string name="importButtonText">Bitte wähle die "SimRa.zip"-Datei aus, die zuvor mit der Exportfunktion in SimRa erstellt wurde. Dadurch werden die Fahrten, Statistiken und Einstellungen, die zuvor exportiert wurden, übernommen. ACHTUNG! Dadurch werden aktuelle Fahrten, Statistiken und Einstellungen gelöscht bzw. überschrieben.</string>
     <string name="importFile">Navigiere bitte zu dem Ordner mit "SimRa.zip" und wähle ihn aus.</string>
-    <string name="importDone">Datenimport abgeschlossen.</string>
+    <string name="importSuccess">Datenimport abgeschlossen.</string>
+    <string name="importFail">Fehler: Datenimport fehlgeschlagen.</string>
     <string name="ok">Okay</string>
     <string name="exportTitle">Datenexport</string>
     <string name="exportPromptTitle">Datenexport der eigenen SimRa-Daten</string>
     <string name="exportButtonText">Gebe bitte den Ort an, wo die Datei "SimRa.zip" gespeichert werden soll. Diese Datei kann dann in einem Android-Gerät in SimRa importiert werden. Dadurch kannst du deine Fahrten, Statistiken und Einstellungen behalten, wenn du dein Handy wechselst oder formatierst. </string>
     <string name="exportDirectory">Wo soll SimRa.zip gespeichert werden?</string>
-    <string name="exportToast">"SimRa-Datei zum Importieren wurde erfolgreich erstellt"</string>
+    <string name="exportSuccessToast">"SimRa-Datei zum Importieren wurde erfolgreich erstellt."</string>
+    <string name="exportFailToast">"Fehler beim Erstellen der SimRa-Datei zum Importieren."</string>
     <string name="dateFormatDescription">Datumsformat</string>
     <string name="germanDate">dd.mm.yy, hh:mm</string>
     <string name="englishDate">mm/dd/yy, hh:mm (AM/PM)</string>
