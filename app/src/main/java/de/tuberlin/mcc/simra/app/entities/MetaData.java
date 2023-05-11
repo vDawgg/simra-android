@@ -1,6 +1,7 @@
 package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -44,6 +45,7 @@ public class MetaData {
     }
 
     public static MetaData loadMetaData(Context context) {
+        long start = System.nanoTime();
         File metaDataFile = IOUtils.Files.getMetaDataFile(context);
         Map<Integer, MetaDataEntry> metaDataEntries = new HashMap() {};
         if (metaDataFile.exists()) {
@@ -62,10 +64,12 @@ public class MetaData {
                 e.printStackTrace();
             }
         }
+        Log.d("BENCHMARK", "Loading matadata took: "+(System.nanoTime()-start));
         return new MetaData(metaDataEntries);
     }
 
     public static MetaDataEntry getMetaDataEntryForRide(Integer rideId, Context context) {
+        long start = System.nanoTime();
         File metaDataFile = IOUtils.Files.getMetaDataFile(context);
         if (metaDataFile.exists()) {
             try (BufferedReader bufferedReader = new BufferedReader(new FileReader(metaDataFile))) {
@@ -85,19 +89,24 @@ public class MetaData {
                 e.printStackTrace();
             }
         }
+        Log.d("BENCHMARK", "Loading matadata-entry took: "+(System.nanoTime()-start));
         return null;
     }
 
     public static void updateOrAddMetaDataEntryForRide(MetaDataEntry metaDataEntry, Context context) {
+        long start = System.nanoTime();
         MetaData metaData = loadMetaData(context);
         metaData.metaDataEntries.put(metaDataEntry.rideId, metaDataEntry);
         saveMetaData(metaData, context);
+        Log.d("BENCHMARK", "Updating/adding metadata-entry took: "+(System.nanoTime()-start));
     }
 
     public static void deleteMetaDataEntryForRide(int rideId, Context context) {
+        long start = System.nanoTime();
         MetaData metaData = loadMetaData(context);
         metaData.metaDataEntries.remove(rideId);
         saveMetaData(metaData, context);
+        Log.d("BENCHMARK", "Deleting matadata-entry took: "+(System.nanoTime()-start));
     }
 
     public static List<MetaDataEntry> getMetaDataEntries(Context context) {

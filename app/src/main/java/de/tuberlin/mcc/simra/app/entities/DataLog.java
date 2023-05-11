@@ -2,6 +2,7 @@ package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
 import android.location.Location;
+import android.util.Log;
 
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
@@ -45,6 +46,7 @@ public class DataLog {
     }
 
     public static DataLog loadDataLog(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
+        long start = System.nanoTime();
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
         long startTime = 0;
@@ -77,10 +79,12 @@ public class DataLog {
         }
         RideAnalysisData rideAnalysisData = null;
         rideAnalysisData = RideAnalysisData.calculateRideAnalysisData(onlyGPSDataLogEntries);
+        Log.d("BENCHMARK", "Loading dataLog took: "+(System.nanoTime()-start));
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
     public static void saveDataLog(DataLog dataLog, Context context) {
+        long start = System.nanoTime();
         File gpsDataLogFile = IOUtils.Files.getGPSLogFile(dataLog.rideId, false, context);
         if (gpsDataLogFile.exists() && gpsDataLogFile.isFile()) {
             gpsDataLogFile.delete();
@@ -93,6 +97,7 @@ public class DataLog {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        Log.d("BENCHMARK", "Saving dataLog took: "+(System.nanoTime()-start));
     }
 
     @Override

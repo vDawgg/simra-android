@@ -355,26 +355,10 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             int region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
             addOBSIncidents(obsMeasurements, incidentLog, gpsLines, this);
             accGpsString = mergeGPSandSensorLines(gpsLines,sensorLines);
-            //This does not seem to overwrite an existing file as getGPSLogsFile returns
-            //a new file if there does not yet exist a file for the rideId
 
-            // Benchmarking starts here. It might still be a better idea to benchmark the write
-            // operations themselves in a microbenchmark rather than this way. Otherwise the
-            // this is hardly reproducible
-            long start = System.currentTimeMillis();
             overwriteFile((IOUtils.Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator() + accGpsString), IOUtils.Files.getGPSLogFile(key, false, this));
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
-
-            start = System.currentTimeMillis();
             MetaData.updateOrAddMetaDataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing metadata took: " + (end-start) + " (in ms)");
-
-            start = System.currentTimeMillis();
             IncidentLog.saveIncidentLog(incidentLog, this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing incidents took: " + (end-start) + " (in ms)");
 
             //  This is used for editing the shared preferences of the app
             editor.putInt("RIDE-KEY", key + 1);

@@ -60,6 +60,7 @@ public class IncidentLog {
      * @return Incident Log of the ride, empty if ride not found.
      */
     public static IncidentLog loadIncidentLogWithRideSettingsAndBoundary(int rideId, Integer bikeType, Integer phoneLocation, Boolean childOnBoard, Boolean bikeWithTrailer, Long startTimeBoundary, Long endTimeBoundary, Context context) {
+        long start = System.nanoTime();
         File incidentFile = getEventsFile(rideId, context);
         TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
         int nn_version = 0;
@@ -89,6 +90,7 @@ public class IncidentLog {
                 e.printStackTrace();
             }
         }
+        Log.d("BENCHMARK", "Loading incidentLog took: "+(System.nanoTime()-start));
         return new IncidentLog(rideId, incidents, nn_version);
     }
 
@@ -124,8 +126,10 @@ public class IncidentLog {
     }
 
     public static void saveIncidentLog(IncidentLog incidentLog, Context context) {
+        long start = System.nanoTime();
         File accEventsFile = getEventsFile(incidentLog.rideId, context);
         Utils.overwriteFile(incidentLog.toString(), accEventsFile);
+        Log.d("BENCHMARK", "Saving incidentLog took: "+(System.nanoTime()-start));
     }
 
     public static List<IncidentLogEntry> getScaryIncidents(IncidentLog incidentLog) {
