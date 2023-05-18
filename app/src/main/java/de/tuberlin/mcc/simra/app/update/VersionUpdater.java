@@ -1,5 +1,7 @@
 package de.tuberlin.mcc.simra.app.update;
 
+import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -21,7 +23,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.Buffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
-
-import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
 
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;

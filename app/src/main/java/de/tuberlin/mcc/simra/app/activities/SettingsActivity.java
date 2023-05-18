@@ -1,5 +1,9 @@
 package de.tuberlin.mcc.simra.app.activities;
 
+import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaDataDB;
+import static de.tuberlin.mcc.simra.app.util.IOUtils.zipToDb;
+import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZipDB;
+
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -19,11 +23,11 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+
+import java.io.File;
 
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
@@ -36,10 +40,6 @@ import de.tuberlin.mcc.simra.app.util.ConnectionManager;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.UnitHelper;
-
-import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaDataDB;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.zipToDb;
-import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZipDB;
 
 public class SettingsActivity extends BaseActivity {
 

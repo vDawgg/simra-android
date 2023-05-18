@@ -2,13 +2,9 @@ package de.tuberlin.mcc.simra.app.database;
 
 import android.content.Context;
 
-import androidx.room.AutoMigration;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;

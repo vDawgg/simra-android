@@ -1,6 +1,8 @@
 package de.tuberlin.mcc.simra.app.activities;
 
 
+import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
@@ -14,14 +16,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import de.tuberlin.mcc.simra.app.R;
-import de.tuberlin.mcc.simra.app.database.MetaDataDao;
-import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivitySingleRideStatisticsBinding;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
-
-import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
 
 public class SingleRideStatisticsActivity extends AppCompatActivity {
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

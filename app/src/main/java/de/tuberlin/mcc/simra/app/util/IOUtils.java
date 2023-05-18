@@ -38,44 +38,6 @@ import static de.tuberlin.mcc.simra.app.util.SharedPref.createEntry;
 public class IOUtils {
     private static final String TAG = "IOUtils_LOG";
 
-    public static boolean isDirectoryEmpty(String path) {
-        File dir = new File(path);
-        if (dir.isDirectory()) {
-            return dir.listFiles().length == 0;
-        }
-        return false;
-    }
-
-    /*
-     *
-     * Zips a file at a location and places the resulting zip file at the toLocation
-     * Example: zipFileAtPath("downloads/myfolder", "downloads/myFolder.zip");
-     */
-    public static void zipFolder(String inputFolderPath, String outZipPath) {
-        try {
-            FileOutputStream fos = new FileOutputStream(outZipPath);
-            ZipOutputStream zos = new ZipOutputStream(fos);
-            File srcFile = new File(inputFolderPath);
-            File[] files = srcFile.listFiles();
-            Log.d(TAG, "Zip directory: " + srcFile.getName());
-            for (int i = 0; i < files.length; i++) {
-                Log.d("", "Adding file: " + files[i].getName());
-                byte[] buffer = new byte[1024];
-                FileInputStream fis = new FileInputStream(files[i]);
-                zos.putNextEntry(new ZipEntry(files[i].getName()));
-                int length;
-                while ((length = fis.read(buffer)) > 0) {
-                    zos.write(buffer, 0, length);
-                }
-                zos.closeEntry();
-                fis.close();
-            }
-            zos.close();
-        } catch (IOException e) {
-            Log.e(TAG, e.getMessage());
-        }
-    }
-
     public static boolean zipToDb(Uri toLocation, Context context) {
         final int BUFFER = 2048;
         byte[] buffer = new byte[BUFFER];
@@ -180,63 +142,6 @@ public class IOUtils {
             e.printStackTrace();
             return false;
         }
-    }
-
-    /*
-     *
-     * Zips a subfolder
-     *
-     */
-
-    private static void zipSubFolder(ZipOutputStream out, File folder,
-                              int basePathLength, Context ctx) throws IOException {
-        if(!(folder.getAbsolutePath().equals(ctx.getFilesDir().getParent()) || folder.getAbsolutePath().contains("files") || folder.getAbsolutePath().contains("shared_prefs"))) {
-            return;
-        }
-        final int BUFFER = 2048;
-
-        File[] fileList = folder.listFiles();
-        BufferedInputStream origin = null;
-        for (File file : fileList) {
-            Log.d(TAG, "file: " + file.getPath() + " is directory: " + file.isDirectory());
-            if (file.isDirectory()) {
-                zipSubFolder(out, file, basePathLength, ctx);
-            } else {
-
-                byte data[] = new byte[BUFFER];
-                String unmodifiedFilePath = file.getPath();
-                String relativePath = unmodifiedFilePath
-                        .substring(basePathLength);
-                if(!relativePath.contains(".zip")) {
-                    FileInputStream fi = new FileInputStream(unmodifiedFilePath);
-
-                    origin = new BufferedInputStream(fi, BUFFER);
-                    ZipEntry entry = new ZipEntry(relativePath);
-
-                    entry.setTime(file.lastModified()); // to keep modification time after unzipping
-                    out.putNextEntry(entry);
-                    int count;
-                    while ((count = origin.read(data, 0, BUFFER)) != -1) {
-                        out.write(data, 0, count);
-                    }
-                    origin.close();
-                }
-            }
-        }
-    }
-
-    /*
-     * gets the last path component
-     *
-     * Example: getLastPathComponent("downloads/example/fileToZip");
-     * Result: "fileToZip"
-     */
-    public static String getLastPathComponent(String filePath) {
-        String[] segments = filePath.split("/");
-        if (segments.length == 0)
-            return "";
-        String lastPathComponent = segments[segments.length - 1];
-        return lastPathComponent;
     }
 
     public static void zipDb(MetaDataEntry[] metaDataEntries, Context context) {
@@ -430,25 +335,6 @@ public class IOUtils {
         }
         public static String getFileInfoLine(int modelVersion) {
             return BuildConfig.VERSION_CODE + "#1#" + modelVersion + System.lineSeparator();
-        }
-        public static String getMetaDataFilePath(Context context) {
-            return IOUtils.Directories.getBaseFolderPath(context) + "metaData.csv";
-        }
-
-        public static File getMetaDataFile(Context context) {
-            return new File(getMetaDataFilePath(context));
-        }
-
-        public static String getGPSLogFileName(int rideId, boolean isTempFile) {
-            return (isTempFile ? "Temp" : "") + rideId + "_accGps.csv";
-        }
-
-        public static String getGPSLogFilePath(int rideId, boolean isTempFile, Context context) {
-            return IOUtils.Directories.getBaseFolderPath(context) + getGPSLogFileName(rideId, isTempFile);
-        }
-
-        public static File getGPSLogFile(int rideId, boolean isTempFile, Context context) {
-            return new File(getGPSLogFilePath(rideId, isTempFile, context));
         }
 
         public static File getRegionsFile(Context context) {

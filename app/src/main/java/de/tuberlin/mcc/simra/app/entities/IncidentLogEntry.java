@@ -3,8 +3,6 @@ package de.tuberlin.mcc.simra.app.entities;
 import androidx.annotation.NonNull;
 import androidx.room.Embedded;
 import androidx.room.Entity;
-import androidx.room.Index;
-import androidx.room.Insert;
 import androidx.room.PrimaryKey;
 
 import java.io.Serializable;

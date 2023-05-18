@@ -1,5 +1,15 @@
 package de.tuberlin.mcc.simra.app.activities;
 
+import static de.tuberlin.mcc.simra.app.entities.Profile.profileIsInUnknownRegion;
+import static de.tuberlin.mcc.simra.app.update.VersionUpdater.Legacy.Utils.getAppVersionNumber;
+import static de.tuberlin.mcc.simra.app.util.Constants.ZOOM_LEVEL;
+import static de.tuberlin.mcc.simra.app.util.SimRAuthenticator.getClientHash;
+import static de.tuberlin.mcc.simra.app.util.Utils.fireProfileRegionPrompt;
+import static de.tuberlin.mcc.simra.app.util.Utils.getNews;
+import static de.tuberlin.mcc.simra.app.util.Utils.isLocationServiceOff;
+import static de.tuberlin.mcc.simra.app.util.Utils.nearestRegionsToThisLocation;
+import static de.tuberlin.mcc.simra.app.util.Utils.overwriteFile;
+
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
@@ -31,6 +41,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.util.Consumer;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
@@ -61,36 +77,21 @@ import java.util.concurrent.TimeoutException;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.util.Consumer;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.databinding.ActivityMainBinding;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
 import de.tuberlin.mcc.simra.app.entities.Profile;
-import de.tuberlin.mcc.simra.app.util.ConnectionManager.BLESTATE;
 import de.tuberlin.mcc.simra.app.services.RecorderService;
 import de.tuberlin.mcc.simra.app.util.BaseActivity;
 import de.tuberlin.mcc.simra.app.util.ConnectionManager;
+import de.tuberlin.mcc.simra.app.util.ConnectionManager.BLESTATE;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.IncidentBroadcaster;
 import de.tuberlin.mcc.simra.app.util.PermissionHelper;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.ble.ConnectionEventListener;
-
-import static de.tuberlin.mcc.simra.app.entities.Profile.profileIsInUnknownRegion;
-import static de.tuberlin.mcc.simra.app.update.VersionUpdater.Legacy.Utils.getAppVersionNumber;
-import static de.tuberlin.mcc.simra.app.util.Constants.ZOOM_LEVEL;
-import static de.tuberlin.mcc.simra.app.util.SimRAuthenticator.getClientHash;
-import static de.tuberlin.mcc.simra.app.util.Utils.fireProfileRegionPrompt;
-import static de.tuberlin.mcc.simra.app.util.Utils.getNews;
-import static de.tuberlin.mcc.simra.app.util.Utils.isLocationServiceOff;
-import static de.tuberlin.mcc.simra.app.util.Utils.nearestRegionsToThisLocation;
-import static de.tuberlin.mcc.simra.app.util.Utils.overwriteFile;
 
 public class MainActivity extends BaseActivity
         implements NavigationView.OnNavigationItemSelectedListener, LocationListener {

@@ -4,11 +4,10 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Arrays;
+
+import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 
 /**
  * Log Helper Methods for easier debugging
@@ -28,26 +27,10 @@ public class LogHelper {
         Log.d(TAG, "===========================Λ=keyPrefs=Λ===========================");
     }
 
-    public static void showDataDirectory(Context context) {
-        Log.d(TAG, "===========================V=Directory=V===========================");
-        String[] fileList = context.fileList();
-        for (String fileName : fileList) {
-            Log.d(TAG, fileName);
-        }
-        Log.d(TAG, "===========================Λ=Directory=Λ===========================");
-    }
-
     public static void showMetadata(Context context) {
         Log.d(TAG, "===========================V=metaData=V===========================");
-        try (BufferedReader metaDataReader = new BufferedReader(new InputStreamReader(new FileInputStream(IOUtils.Files.getMetaDataFile(context))))) {
-            String metaDataLine;
-            // loop through the metaData.csv lines
-            while ((metaDataLine = metaDataReader.readLine()) != null) {
-                Log.d(TAG, metaDataLine);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.d(TAG, "Exception in showMetadata(): " + Arrays.toString(e.getStackTrace()));
+        for(MetaDataEntry me : MetaData.getMetadataEntriesSortedByKey(context)) {
+            System.out.println(me.stringifyMetaDataEntry());
         }
         Log.d(TAG, "===========================Λ=metaData=Λ===========================");
     }

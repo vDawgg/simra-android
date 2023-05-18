@@ -1,11 +1,17 @@
 package de.tuberlin.mcc.simra.app.util;
 
+import static de.tuberlin.mcc.simra.app.activities.ProfileActivity.startProfileActivityForChooseRegion;
+import static de.tuberlin.mcc.simra.app.util.IOUtils.zipDb;
+import static de.tuberlin.mcc.simra.app.util.SimRAuthenticator.getClientHash;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.location.LocationManager;
 import android.util.Log;
 import android.util.Pair;
+
+import androidx.appcompat.app.AlertDialog;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -15,7 +21,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -29,7 +34,6 @@ import java.util.Queue;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import androidx.appcompat.app.AlertDialog;
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
@@ -38,10 +42,6 @@ import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.entities.Profile;
-
-import static de.tuberlin.mcc.simra.app.activities.ProfileActivity.startProfileActivityForChooseRegion;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.zipDb;
-import static de.tuberlin.mcc.simra.app.util.SimRAuthenticator.getClientHash;
 
 public class Utils {
 
@@ -594,34 +594,5 @@ public class Utils {
     public static void prepareDebugZipDB(int mode, MetaDataEntry[] rides, Context context) {
         if (mode == 2 || mode == 1) rides = new MetaDataEntry[0];
         zipDb(rides, context);
-    }
-
-    /**
-     * @deprecated Use IncidentLogEntry  instead
-     */
-    private static class AccEvent {
-
-        public long timeStamp;
-        public GeoPoint position;
-        public int key = 999;              // when an event doesn't have a key yet, the key is 999
-        // (can't use 0 because that's an actual valid key)
-        public String incidentType = "-1";
-        public String scary = "0"; // default is non-scary
-        public boolean annotated = false;  // events are labeled as not annotated when first created.
-        String TAG = "AccEvent_LOG";
-
-        public AccEvent(int key, double lat, double lon, long timeStamp, boolean annotated, String incidentType, String scary) {
-            this.key = key;
-            this.position = new GeoPoint(lat, lon);
-            this.timeStamp = timeStamp;
-            this.annotated = annotated;
-            this.incidentType = incidentType;
-            this.scary = scary;
-        }
-
-
-        public long getTimeStamp() {
-            return this.timeStamp;
-        }
     }
 }
