@@ -48,6 +48,8 @@ public class DataLog {
     }
 
     public static DataLog loadDataLog(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
+        ResourceUsage.startPollingMem(context);
+        long cpu_start = ResourceUsage.getCpuUtilization();
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
         long startTime = 0;
@@ -80,12 +82,13 @@ public class DataLog {
         }
         RideAnalysisData rideAnalysisData = null;
         rideAnalysisData = RideAnalysisData.calculateRideAnalysisData(onlyGPSDataLogEntries);
+        Log.d("RESOURCE", "Average pss usage loading DataLog: "+ResourceUsage.getAveragePSS());
+        Log.d("RESOURCE", "CPU usage loading DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
     public static void saveDataLog(DataLog dataLog, Context context) {
-        //ResourceUsage.startPollingCurrent(context);
-        //Pair<Integer, Integer> memory_start = ResourceUsage.getUsedMemorySize();
+        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         File gpsDataLogFile = IOUtils.Files.getGPSLogFile(dataLog.rideId, false, context);
         if (gpsDataLogFile.exists() && gpsDataLogFile.isFile()) {
@@ -96,10 +99,8 @@ public class DataLog {
             for (DataLogEntry dataLogEntry : dataLog.dataLogEntries) {
                 writer.write(dataLogEntry.stringifyDataLogEntry() + System.lineSeparator());
             }
-            //Log.d("RESOURCE","Batter usage: "+ResourceUsage.getCurrent());
-            //Log.d("RESOURCE", "Memory pss usage: "+(Math.abs(memory_start.first-ResourceUsage.getUsedMemorySize().first)));
-            //Log.d("RESOURCE", "Memory private_dirty usage: "+(Math.abs(memory_start.second-ResourceUsage.getUsedMemorySize().second)));
-            //Log.d("RESOURCE", "CPU usage: "+(ResourceUsage.getCpuUtilization()-cpu_start));
+            Log.d("RESOURCE", "Average pss usage saving DataLog: "+ResourceUsage.getAveragePSS());
+            Log.d("RESOURCE", "CPU usage saving DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         } catch (IOException e) {
             e.printStackTrace();
         }

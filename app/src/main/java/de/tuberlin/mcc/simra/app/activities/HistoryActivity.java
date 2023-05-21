@@ -42,6 +42,7 @@ import de.tuberlin.mcc.simra.app.entities.Profile;
 import de.tuberlin.mcc.simra.app.services.UploadService;
 import de.tuberlin.mcc.simra.app.util.BaseActivity;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
+import de.tuberlin.mcc.simra.app.util.ResourceUsage;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 
 import static de.tuberlin.mcc.simra.app.util.SharedPref.lookUpBooleanSharedPrefs;
@@ -210,10 +211,22 @@ public class HistoryActivity extends BaseActivity {
             clicked = clicked.replace("#", "").split(";")[0];
             if (dirFiles.length != 0) {
                 for (File actualFile : dirFiles) {
-                    if (actualFile.getName().startsWith(clicked + "_") || actualFile.getName().startsWith("accEvents" + clicked)) {
+                    if (actualFile.getName().startsWith(clicked + "_")) {
+                        ResourceUsage.startPollingMem(this);
+                        long cpu_start = ResourceUsage.getCpuUtilization();
 
                         /* don't delete the following line! */
                         Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
+                        Log.d("RESOURCE", "Average pss usage deleting DataLog: "+ResourceUsage.getAveragePSS());
+                        Log.d("RESOURCE", "CPU usage deleting DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
+                    } else if (actualFile.getName().startsWith("accEvents" + clicked)) {
+                        ResourceUsage.startPollingMem(this);
+                        long cpu_start = ResourceUsage.getCpuUtilization();
+
+                        /* don't delete the following line! */
+                        Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
+                        Log.d("RESOURCE", "Average pss usage deleting IncidentLog: "+ResourceUsage.getAveragePSS());
+                        Log.d("RESOURCE", "CPU usage deleting IncidentLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
                     }
                 }
             }
