@@ -2,6 +2,8 @@ package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
 import android.location.Location;
+import android.util.Log;
+import android.util.Pair;
 
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.tuberlin.mcc.simra.app.util.IOUtils;
+import de.tuberlin.mcc.simra.app.util.ResourceUsage;
 import de.tuberlin.mcc.simra.app.util.Utils;
 
 public class DataLog {
@@ -81,6 +84,9 @@ public class DataLog {
     }
 
     public static void saveDataLog(DataLog dataLog, Context context) {
+        //ResourceUsage.startPollingCurrent(context);
+        //Pair<Integer, Integer> memory_start = ResourceUsage.getUsedMemorySize();
+        long cpu_start = ResourceUsage.getCpuUtilization();
         File gpsDataLogFile = IOUtils.Files.getGPSLogFile(dataLog.rideId, false, context);
         if (gpsDataLogFile.exists() && gpsDataLogFile.isFile()) {
             gpsDataLogFile.delete();
@@ -90,6 +96,10 @@ public class DataLog {
             for (DataLogEntry dataLogEntry : dataLog.dataLogEntries) {
                 writer.write(dataLogEntry.stringifyDataLogEntry() + System.lineSeparator());
             }
+            //Log.d("RESOURCE","Batter usage: "+ResourceUsage.getCurrent());
+            //Log.d("RESOURCE", "Memory pss usage: "+(Math.abs(memory_start.first-ResourceUsage.getUsedMemorySize().first)));
+            //Log.d("RESOURCE", "Memory private_dirty usage: "+(Math.abs(memory_start.second-ResourceUsage.getUsedMemorySize().second)));
+            //Log.d("RESOURCE", "CPU usage: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         } catch (IOException e) {
             e.printStackTrace();
         }
