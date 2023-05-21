@@ -256,7 +256,7 @@ public class SettingsActivity extends BaseActivity {
 
     public void fireDebugPromptDB() {
         androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
-        MetaDataEntry[] metaDataEntries = MetaData.getMetaDataEntriesLastModifies(this);
+        MetaDataEntry[] metaDataEntries = MetaData.getMetaDataEntriesLastModified(this);
         CharSequence[] array;
         array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugDoNotSendRides)};
         final int[] clicked = {2};

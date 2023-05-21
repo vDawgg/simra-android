@@ -46,6 +46,7 @@ public class IncidentLog {
     }
 
     public static IncidentLog loadIncidentLogWithRideSettingsAndBoundary(int rideId, Integer bikeType, Integer phoneLocation, Boolean childOnBoard, Boolean bikeWithTrailer, Long startTimeBoundary, Long endTimeBoundary, Context context) {
+        long start = System.nanoTime();
         TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
 
         SimRaDB db = SimRaDB.getDataBase(context);
@@ -66,6 +67,7 @@ public class IncidentLog {
             }
         }
 
+        Log.d("BENCHMARK", "Loading incidentLog took: "+(System.nanoTime()-start));
         return new IncidentLog(rideId, incidents, incidentLogEntries[0].nn_version);
     }
 
@@ -101,6 +103,7 @@ public class IncidentLog {
     }
 
     public static void saveIncidentLog(IncidentLog incidentLog, Context context) {
+        long start = System.nanoTime();
         List<IncidentLogEntry> incidents = new ArrayList<>(incidentLog.getIncidents().values());
 
         //Make sure that all incidents actually have the correct ride-id
@@ -112,6 +115,7 @@ public class IncidentLog {
         }
 
         SimRaDB.getDataBase(context).getIncidentLogDao().addOrUpdateIncidentLogEntries(incidents);
+        Log.d("BENCHMARK", "Saving incidentLog took: "+(System.nanoTime()-start));
     }
 
     /**
@@ -130,7 +134,9 @@ public class IncidentLog {
      * @param context
      */
     public static void deleteIncidentsOfRide(int rideId, Context context) {
+        long start = System.nanoTime();
         SimRaDB.getDataBase(context).getIncidentLogDao().deleteIncidentLogEntries(rideId);
+        Log.d("BENCHMARK", "Deleting incidentlog took: "+(System.nanoTime()-start));
     }
 
     public static List<IncidentLogEntry> getScaryIncidents(IncidentLog incidentLog) {

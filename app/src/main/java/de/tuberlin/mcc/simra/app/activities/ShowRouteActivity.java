@@ -392,10 +392,7 @@ public class ShowRouteActivity extends BaseActivity {
             long startTime = this.originalDataLog.onlyGPSDataLogEntries.get(start).timestamp;
             long endTime = this.originalDataLog.onlyGPSDataLogEntries.get(end).timestamp;
 
-            long start = System.currentTimeMillis();
             DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Updating DataLog took: "+(end-start)+" ms");
         }
 
         // Update MetaData
@@ -631,19 +628,11 @@ public class ShowRouteActivity extends BaseActivity {
         @Override
         protected Void doInBackground(Void... voids) {
 
-            long start = System.currentTimeMillis();
             originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Reading datalog took: " + (end-start) + " (in ms)");
-
-            Log.d("DEBUG", "OG-DL-size: "+originalDataLog.dataLogEntries.size());
 
             Polyline originalRoute = originalDataLog.rideAnalysisData.route;
 
-            start = System.currentTimeMillis();
             incidentLog = IncidentLog.loadIncidentLogWithRideSettingsInformation(rideId, bike, pLoc, child == 1, trailer == 1, ShowRouteActivity.this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Reading incidentLog took: " + (end-start) + " (in ms)");
 
             if (editableRoute != null) {
                 binding.showRouteMap.getOverlayManager().remove(editableRoute);

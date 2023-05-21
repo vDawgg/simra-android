@@ -1,15 +1,13 @@
 package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
+import android.util.Log;
 
 import java.util.List;
 import java.util.Map;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
 
-//TODO: Remove this whole class as it should not be needed anymore
-// This might also apply to DataLog though the logic in that class
-// is not as easily replaceable
 /**
  * //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * // METADATA: contains ...
@@ -28,6 +26,7 @@ public class MetaData {
         this.metaDataEntries = metaDataEntries;
     }
 
+    //TODO: Add this to the original measurements as well, as it was omitted there
     /**
      * Returns the MetadataEntry for a specified ride
      * @param rideId the given rideId
@@ -35,7 +34,10 @@ public class MetaData {
      * @return
      */
     public static MetaDataEntry getMetadataEntryForRide(int rideId, Context context) {
-        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntryForRide(rideId);
+        long start = System.nanoTime();
+        MetaDataEntry entry = SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntryForRide(rideId);
+        Log.d("BENCHMARK", "Loading metadata-entry took: "+(System.nanoTime()-start));
+        return entry;
     }
 
     /**
@@ -44,7 +46,10 @@ public class MetaData {
      * @return Array of MetadataEntries sorted by the rideId
      */
     public static MetaDataEntry[] getMetadataEntriesSortedByKey(Context context) {
-        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey();
+        long start = System.nanoTime();
+        MetaDataEntry[] entries = SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey();
+        Log.d("BENCHMARK", "Loading matadata took: "+(System.nanoTime()-start));
+        return entries;
     }
 
     /**
@@ -52,7 +57,7 @@ public class MetaData {
      * @param context
      * @return
      */
-    public static MetaDataEntry[] getMetaDataEntriesLastModifies(Context context) {
+    public static MetaDataEntry[] getMetaDataEntriesLastModified(Context context) {
         return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesLastModified();
     }
 
@@ -62,7 +67,9 @@ public class MetaData {
      * @param context
      */
     public static void updateOrAddMetadataEntryForRide(MetaDataEntry entry, Context context) {
+        long start = System.nanoTime();
         SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry);
+        Log.d("BENCHMARK", "Updating/adding metadata-entry took: "+(System.nanoTime()-start));
     }
 
     /**
@@ -80,7 +87,9 @@ public class MetaData {
      * @param context
      */
     public static void deleteMetadataEntryForRide(int rideId, Context context) {
+        long start = System.nanoTime();
         SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId);
+        Log.d("BENCHMARK", "Deleting matadata-entry took: "+(System.nanoTime()-start));
     }
 
     public static class STATE {

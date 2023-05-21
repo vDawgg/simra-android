@@ -2,6 +2,7 @@ package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
 import android.location.Location;
+import android.util.Log;
 
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
@@ -42,6 +43,7 @@ public class DataLog {
     }
 
     public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
+        long start = System.nanoTime();
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
         long startTime = 0;
@@ -68,6 +70,7 @@ public class DataLog {
         RideAnalysisData rideAnalysisData = RideAnalysisData.
                 calculateRideAnalysisData(onlyGPSDataLogEntries);
 
+        Log.d("BENCHMARK", "Loading dataLog took: "+(System.nanoTime()-start));
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
@@ -81,6 +84,7 @@ public class DataLog {
         return SimRaDB.getDataBase(context).getDataLogDao().loadAllEntriesOfRide(rideId);
     }
 
+    //TODO: Add this (maybe as a distinction) to the original as well
     /**
      * This deletes all dataLog entries of a ride that are not in the timeframe chosen with the
      * privacy slider anymore
@@ -90,7 +94,9 @@ public class DataLog {
      * @param context
      */
     public static void updateDataLogBoundaries(int rideId, long startTime, long endTime, Context context) {
+        long start = System.nanoTime();
         SimRaDB.getDataBase(context).getDataLogDao().updateDataLogBoundaries(rideId, startTime, endTime);
+        Log.d("BENCHMARK", "Updating dataLog took: "+(System.nanoTime()-start));
     }
 
     /**
@@ -99,7 +105,9 @@ public class DataLog {
      * @param context
      */
     public static void saveDataLogEntries(List<DataLogEntry> entries, Context context) {
+        long start = System.nanoTime();
         SimRaDB.getDataBase(context).getDataLogDao().insertDataLogEntries(entries);
+        Log.d("BENCHMARK", "Saving dataLog took: "+(System.nanoTime()-start));
     }
 
     /**
@@ -108,7 +116,9 @@ public class DataLog {
      * @param context
      */
     public static void deleteEntriesOfRide(int rideId, Context context) {
+        long start = System.nanoTime();
         SimRaDB.getDataBase(context).getDataLogDao().deleteEntriesOfRide(rideId);
+        Log.d("BENCHMARK", "Deleting DataLog took: "+(System.nanoTime()-start));
     }
 
     @Override

@@ -358,20 +358,11 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             List<DataLogEntry> acc = mergeGPSAndSensor(gpsLines, sensorLines);
             Log.d("DEBUG", acc.toString());
 
-            long start = System.currentTimeMillis();
             DataLog.saveDataLogEntries(acc, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing datalog took: " + (end-start) + " (in ms)");
 
-            start = System.currentTimeMillis();
             MetaData.updateOrAddMetadataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region, System.currentTimeMillis()), this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing metaDataLog took: " + (end-start) + " (in ms)");
 
-            start = System.currentTimeMillis();
             IncidentLog.saveIncidentLog(incidentLog, this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Writing incidentLog took: " + (end-start) + " (in ms)");
 
             editor.putInt("RIDE-KEY", key + 1);
             editor.apply();
