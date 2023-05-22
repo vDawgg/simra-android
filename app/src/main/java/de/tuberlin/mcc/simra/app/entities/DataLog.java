@@ -2,6 +2,7 @@ package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
 import android.location.Location;
+import android.util.Log;
 
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
@@ -12,6 +13,7 @@ import java.util.List;
 import de.tuberlin.mcc.simra.app.database.DataLogDao;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
+import de.tuberlin.mcc.simra.app.util.ResourceUsage;
 import de.tuberlin.mcc.simra.app.util.Utils;
 
 public class DataLog {
@@ -42,6 +44,8 @@ public class DataLog {
     }
 
     public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
+        ResourceUsage.startPollingMem(context);
+        long cpu_start = ResourceUsage.getCpuUtilization();
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
         long startTime = 0;
@@ -68,6 +72,8 @@ public class DataLog {
         RideAnalysisData rideAnalysisData = RideAnalysisData.
                 calculateRideAnalysisData(onlyGPSDataLogEntries);
 
+        Log.d("RESOURCE", "Average pss usage loading DataLog: "+ResourceUsage.getAveragePSS());
+        Log.d("RESOURCE", "CPU usage loading DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
@@ -99,7 +105,11 @@ public class DataLog {
      * @param context
      */
     public static void saveDataLogEntries(List<DataLogEntry> entries, Context context) {
+        ResourceUsage.startPollingMem(context);
+        long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getDataLogDao().insertDataLogEntries(entries);
+        Log.d("RESOURCE", "Average pss usage saving DataLog: "+ResourceUsage.getAveragePSS());
+        Log.d("RESOURCE", "CPU usage saving DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
     /**
@@ -108,7 +118,11 @@ public class DataLog {
      * @param context
      */
     public static void deleteEntriesOfRide(int rideId, Context context) {
+        ResourceUsage.startPollingMem(context);
+        long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getDataLogDao().deleteEntriesOfRide(rideId);
+        Log.d("RESOURCE", "Average pss usage deleting DataLog: "+ResourceUsage.getAveragePSS());
+        Log.d("RESOURCE", "CPU usage deleting DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
     @Override

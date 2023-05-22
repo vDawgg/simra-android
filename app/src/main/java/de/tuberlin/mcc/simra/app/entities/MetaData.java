@@ -1,15 +1,14 @@
 package de.tuberlin.mcc.simra.app.entities;
 
 import android.content.Context;
+import android.util.Log;
 
 import java.util.List;
 import java.util.Map;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
+import de.tuberlin.mcc.simra.app.util.ResourceUsage;
 
 
-//TODO: Remove this whole class as it should not be needed anymore
-// This might also apply to DataLog though the logic in that class
-// is not as easily replaceable
 /**
  * //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * // METADATA: contains ...
@@ -44,7 +43,12 @@ public class MetaData {
      * @return Array of MetadataEntries sorted by the rideId
      */
     public static MetaDataEntry[] getMetadataEntriesSortedByKey(Context context) {
-        return SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey();
+        ResourceUsage.startPollingMem(context);
+        long cpu_start = ResourceUsage.getCpuUtilization();
+        MetaDataEntry[] entries = SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey();
+        Log.d("RESOURCE", "Average pss usage loading MetaData: "+ResourceUsage.getAveragePSS());
+        Log.d("RESOURCE", "CPU usage loading MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
+        return entries;
     }
 
     /**
@@ -62,7 +66,11 @@ public class MetaData {
      * @param context
      */
     public static void updateOrAddMetadataEntryForRide(MetaDataEntry entry, Context context) {
+        ResourceUsage.startPollingMem(context);
+        long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry);
+        Log.d("RESOURCE", "Average pss usage updating/adding MetaData: "+ResourceUsage.getAveragePSS());
+        Log.d("RESOURCE", "CPU usage updating/adding MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
     /**
@@ -80,7 +88,11 @@ public class MetaData {
      * @param context
      */
     public static void deleteMetadataEntryForRide(int rideId, Context context) {
+        ResourceUsage.startPollingMem(context);
+        long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId);
+        Log.d("RESOURCE", "Average pss usage deleting MetaData: "+ResourceUsage.getAveragePSS());
+        Log.d("RESOURCE", "CPU usage deleting MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
     public static class STATE {
