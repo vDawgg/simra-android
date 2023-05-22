@@ -46,7 +46,6 @@ public class MetaData {
     }
 
     public static MetaData loadMetaData(Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         File metaDataFile = IOUtils.Files.getMetaDataFile(context);
         Map<Integer, MetaDataEntry> metaDataEntries = new HashMap() {};
@@ -66,7 +65,6 @@ public class MetaData {
                 e.printStackTrace();
             }
         }
-        Log.d("RESOURCE", "Average pss usage loading MetaData: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage loading MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         return new MetaData(metaDataEntries);
     }
@@ -95,22 +93,18 @@ public class MetaData {
     }
 
     public static void updateOrAddMetaDataEntryForRide(MetaDataEntry metaDataEntry, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         MetaData metaData = loadMetaData(context);
         metaData.metaDataEntries.put(metaDataEntry.rideId, metaDataEntry);
         saveMetaData(metaData, context);
-        Log.d("RESOURCE", "Average pss usage updating/adding MetaData: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage updating/adding MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
     public static void deleteMetaDataEntryForRide(int rideId, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         MetaData metaData = loadMetaData(context);
         metaData.metaDataEntries.remove(rideId);
         saveMetaData(metaData, context);
-        Log.d("RESOURCE", "Average pss usage deleting MetaData: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage deleting MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 

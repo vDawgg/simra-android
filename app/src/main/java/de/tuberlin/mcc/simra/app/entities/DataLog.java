@@ -48,7 +48,6 @@ public class DataLog {
     }
 
     public static DataLog loadDataLog(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
@@ -82,13 +81,11 @@ public class DataLog {
         }
         RideAnalysisData rideAnalysisData = null;
         rideAnalysisData = RideAnalysisData.calculateRideAnalysisData(onlyGPSDataLogEntries);
-        Log.d("RESOURCE", "Average pss usage loading DataLog: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage loading DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
     public static void saveDataLog(DataLog dataLog, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         File gpsDataLogFile = IOUtils.Files.getGPSLogFile(dataLog.rideId, false, context);
         if (gpsDataLogFile.exists() && gpsDataLogFile.isFile()) {
@@ -99,7 +96,6 @@ public class DataLog {
             for (DataLogEntry dataLogEntry : dataLog.dataLogEntries) {
                 writer.write(dataLogEntry.stringifyDataLogEntry() + System.lineSeparator());
             }
-            Log.d("RESOURCE", "Average pss usage saving DataLog: "+ResourceUsage.getAveragePSS());
             Log.d("RESOURCE", "CPU usage saving DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         } catch (IOException e) {
             e.printStackTrace();

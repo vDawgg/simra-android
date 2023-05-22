@@ -212,20 +212,16 @@ public class HistoryActivity extends BaseActivity {
             if (dirFiles.length != 0) {
                 for (File actualFile : dirFiles) {
                     if (actualFile.getName().startsWith(clicked + "_")) {
-                        ResourceUsage.startPollingMem(this);
                         long cpu_start = ResourceUsage.getCpuUtilization();
 
                         /* don't delete the following line! */
                         Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
-                        Log.d("RESOURCE", "Average pss usage deleting DataLog: "+ResourceUsage.getAveragePSS());
                         Log.d("RESOURCE", "CPU usage deleting DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
                     } else if (actualFile.getName().startsWith("accEvents" + clicked)) {
-                        ResourceUsage.startPollingMem(this);
                         long cpu_start = ResourceUsage.getCpuUtilization();
 
                         /* don't delete the following line! */
                         Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
-                        Log.d("RESOURCE", "Average pss usage deleting IncidentLog: "+ResourceUsage.getAveragePSS());
                         Log.d("RESOURCE", "CPU usage deleting IncidentLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
                     }
                 }

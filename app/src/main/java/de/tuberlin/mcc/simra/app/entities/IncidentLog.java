@@ -61,7 +61,6 @@ public class IncidentLog {
      * @return Incident Log of the ride, empty if ride not found.
      */
     public static IncidentLog loadIncidentLogWithRideSettingsAndBoundary(int rideId, Integer bikeType, Integer phoneLocation, Boolean childOnBoard, Boolean bikeWithTrailer, Long startTimeBoundary, Long endTimeBoundary, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         File incidentFile = getEventsFile(rideId, context);
         TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
@@ -92,7 +91,6 @@ public class IncidentLog {
                 e.printStackTrace();
             }
         }
-        Log.d("RESOURCE", "Average pss usage loading IncidentLog: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage loading IncidentLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         return new IncidentLog(rideId, incidents, nn_version);
     }
@@ -129,11 +127,9 @@ public class IncidentLog {
     }
 
     public static void saveIncidentLog(IncidentLog incidentLog, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         File accEventsFile = getEventsFile(incidentLog.rideId, context);
         Utils.overwriteFile(incidentLog.toString(), accEventsFile);
-        Log.d("RESOURCE", "Average pss usage saving IncidentLog: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage saving IncidentLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
