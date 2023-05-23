@@ -43,10 +43,8 @@ public class MetaData {
      * @return Array of MetadataEntries sorted by the rideId
      */
     public static MetaDataEntry[] getMetadataEntriesSortedByKey(Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         MetaDataEntry[] entries = SimRaDB.getDataBase(context).getMetaDataDao().getMetadataEntriesSortedByKey();
-        Log.d("RESOURCE", "Average pss usage loading MetaData: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage loading MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         return entries;
     }
@@ -66,10 +64,8 @@ public class MetaData {
      * @param context
      */
     public static void updateOrAddMetadataEntryForRide(MetaDataEntry entry, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getMetaDataDao().updateOrAddMetadataEntryForRide(entry);
-        Log.d("RESOURCE", "Average pss usage updating/adding MetaData: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage updating/adding MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
@@ -88,10 +84,8 @@ public class MetaData {
      * @param context
      */
     public static void deleteMetadataEntryForRide(int rideId, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getMetaDataDao().deleteMetadataEntryForRide(rideId);
-        Log.d("RESOURCE", "Average pss usage deleting MetaData: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage deleting MetaData: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 

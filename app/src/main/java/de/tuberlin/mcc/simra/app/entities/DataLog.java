@@ -44,7 +44,6 @@ public class DataLog {
     }
 
     public static DataLog loadDataLogFromDB(int rideId, Long startTimeBoundary, Long endTimeBoundary, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         List<DataLogEntry> dataPoints = new ArrayList<>();
         List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
@@ -72,7 +71,6 @@ public class DataLog {
         RideAnalysisData rideAnalysisData = RideAnalysisData.
                 calculateRideAnalysisData(onlyGPSDataLogEntries);
 
-        Log.d("RESOURCE", "Average pss usage loading DataLog: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage loading DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
@@ -105,10 +103,8 @@ public class DataLog {
      * @param context
      */
     public static void saveDataLogEntries(List<DataLogEntry> entries, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getDataLogDao().insertDataLogEntries(entries);
-        Log.d("RESOURCE", "Average pss usage saving DataLog: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage saving DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
@@ -118,10 +114,8 @@ public class DataLog {
      * @param context
      */
     public static void deleteEntriesOfRide(int rideId, Context context) {
-        ResourceUsage.startPollingMem(context);
         long cpu_start = ResourceUsage.getCpuUtilization();
         SimRaDB.getDataBase(context).getDataLogDao().deleteEntriesOfRide(rideId);
-        Log.d("RESOURCE", "Average pss usage deleting DataLog: "+ResourceUsage.getAveragePSS());
         Log.d("RESOURCE", "CPU usage deleting DataLog: "+(ResourceUsage.getCpuUtilization()-cpu_start));
     }
 
