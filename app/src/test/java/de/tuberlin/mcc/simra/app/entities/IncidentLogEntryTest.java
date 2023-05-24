@@ -9,42 +9,42 @@ public class IncidentLogEntryTest {
 
     @Test
     public void parseEntryFromLine_EmptyString() {
-        assertThat(IncidentLogEntry.parseEntryFromLine(""))
+        assertThat(IncidentLogEntry.parseEntryFromLine("", null))
                 .usingRecursiveComparison()
                 .isEqualTo(IncidentLogEntry.newBuilder().build());
     }
 
     @Test
     public void parseEntryFromLine_Empty() {
-        assertThat(IncidentLogEntry.parseEntryFromLine(",,,,,,,,,,,,,,,,,,,"))
+        assertThat(IncidentLogEntry.parseEntryFromLine(",,,,,,,,,,,,,,,,,,,", null))
                 .usingRecursiveComparison()
                 .isEqualTo(IncidentLogEntry.newBuilder().build());
     }
 
     @Test
     public void parseEntryFromLine_Special_Chars() {
-        assertThat(IncidentLogEntry.parseEntryFromLine(",,,,,,,,,,,,,,,,,,,string;komma;;linebreak;,"))
+        assertThat(IncidentLogEntry.parseEntryFromLine(",,,,,,,,,,,,,,,,,,,string;komma;;linebreak;,", null))
                 .usingRecursiveComparison()
                 .isEqualTo(IncidentLogEntry.newBuilder().withRideInformation(0, false, false, 0, 0, null, false, "string," + System.lineSeparator()).build());
     }
 
     @Test
     public void parseEntryFromLine_Full_Negative() {
-        assertThat(IncidentLogEntry.parseEntryFromLine("0,52.4949566,13.3658506,1593886060502,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,string,0"))
+        assertThat(IncidentLogEntry.parseEntryFromLine("0,52.4949566,13.3658506,1593886060502,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,string,0", null))
                 .usingRecursiveComparison()
                 .isEqualTo(IncidentLogEntry.newBuilder().withKey(0).withBaseInformation(1593886060502L, 52.4949566, 13.3658506).withRideInformation(0, false, false, 0, 0, new IncidentLogEntry.InvolvedRoadUser(false, false, false, false, false, false, false, false, false, false), false, "string").build());
     }
 
     @Test
     public void parseEntryFromLine_Full_Positive() {
-        assertThat(IncidentLogEntry.parseEntryFromLine("0,52.4949566,13.3658506,1593886060502,2,1,1,3,4,1,1,1,1,1,1,1,1,1,1,string,1"))
+        assertThat(IncidentLogEntry.parseEntryFromLine("0,52.4949566,13.3658506,1593886060502,2,1,1,3,4,1,1,1,1,1,1,1,1,1,1,string,1", null))
                 .usingRecursiveComparison()
                 .isEqualTo(IncidentLogEntry.newBuilder().withKey(0).withBaseInformation(1593886060502L, 52.4949566, 13.3658506).withRideInformation(2, true, true, 3, 4, new IncidentLogEntry.InvolvedRoadUser(true, true, true, true, true, true, true, true, true, true), true, "string").build());
     }
 
     @Test
     public void parseEntryFromLine_Test() {
-        assertThat(IncidentLogEntry.parseEntryFromLine("0,52.4949566,13.3658506,1593886060502,0,0,0,0,,,,,,,,,,,,,"))
+        assertThat(IncidentLogEntry.parseEntryFromLine("0,52.4949566,13.3658506,1593886060502,0,0,0,0,,,,,,,,,,,,,", null))
                 .usingRecursiveComparison()
                 .isEqualTo(IncidentLogEntry.newBuilder().withKey(0).withBaseInformation(1593886060502L, 52.4949566, 13.3658506).withRideInformation(0, false, false, 0, 0, new IncidentLogEntry.InvolvedRoadUser(false, false, false, false, false, false, false, false, false, false), false, "").build());
     }

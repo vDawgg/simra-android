@@ -486,7 +486,7 @@ public class VersionUpdater {
 
                         accEventsReader.readLine();
                         while ((accEventsLine = accEventsReader.readLine()) != null) {
-                            IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(accEventsLine);
+                            IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(accEventsLine, rideId);
                             incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
                         }
                         IncidentLog.saveIncidentLog(new IncidentLog(rideId, incidentLogEntries, nn_version), context);

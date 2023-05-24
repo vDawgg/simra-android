@@ -65,7 +65,7 @@ public class IncidentLogEntry implements Serializable {
         this.timestamp = builder.timestamp;
     }
 
-    public static IncidentLogEntry parseEntryFromLine(String string) {
+    public static IncidentLogEntry parseEntryFromLine(String string, Integer rideId) {
         String[] dataLogLine = string.split(",", -1);
         IncidentLogEntry.Builder dataLogEntry = IncidentLogEntry.newBuilder();
 
@@ -103,7 +103,9 @@ public class IncidentLogEntry implements Serializable {
                 dataLogLine.length > 19 ? (!dataLogLine[19].isEmpty() ? dataLogLine[19].replaceAll(";linebreak;", System.lineSeparator()).replaceAll(";komma;", ",") : "") : ""
         );
 
-        dataLogEntry.withKey(Integer.parseInt(dataLogLine[0]));
+        if (rideId != null) {
+            dataLogEntry.withKey(rideId);
+        }
 
         return dataLogEntry.build();
     }
