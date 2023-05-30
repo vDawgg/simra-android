@@ -4,14 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".activities.ShowRouteActivity">
+    tools:context=".activities.AllRidesActivity">
 
     <include
         android:id="@+id/toolbar"
         layout="@layout/toolbar" />
 
     <org.osmdroid.views.MapView
-        android:id="@+id/showRouteMap"
+        android:id="@+id/allRidesMap"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent" />
 

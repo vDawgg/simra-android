@@ -72,6 +72,9 @@
                 android:value="de.tuberlin.mcc.simra.app.activities.MainActivity" />
         </activity>
         <activity
+            android:name=".activities.AllRidesActivity"
+            android:configChanges="orientation|screenSize" />
+        <activity
             android:name=".activities.ShowRouteActivity"
             android:configChanges="orientation|screenSize" />
         <activity
