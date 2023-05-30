@@ -24,7 +24,7 @@ public class DataLog {
     public final long startTime;
     public final long endTime;
 
-    private DataLog(
+    public DataLog(
             int rideId,
             List<DataLogEntry> dataLogEntries,
             List<DataLogEntry> onlyGPSDataLogEntries, RideAnalysisData rideAnalysisData,
@@ -69,6 +69,20 @@ public class DataLog {
                 calculateRideAnalysisData(onlyGPSDataLogEntries);
 
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
+    }
+
+    public static List<DataLogEntry> getGPSDataLogEntries(DataLogEntry[] dataLogEntries) {
+        List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
+
+        if (dataLogEntries.length > 0) {
+            for (DataLogEntry entry : dataLogEntries) {
+                if (entry.longitude != null && entry.latitude != null) {
+                    onlyGPSDataLogEntries.add(entry);
+                }
+            }
+        }
+
+        return onlyGPSDataLogEntries;
     }
 
     /**

@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.TimeZone;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityHistoryBinding;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
@@ -194,6 +195,7 @@ public class HistoryActivity extends BaseActivity {
 
             int rideId = Integer.parseInt(clicked);
 
+            /*
             long start = System.currentTimeMillis();
             MetaData.deleteMetadataEntryForRide(rideId, this);
             long end = System.currentTimeMillis();
@@ -208,6 +210,12 @@ public class HistoryActivity extends BaseActivity {
             IncidentLog.deleteIncidentsOfRide(rideId, this);
             end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Deleting incidentLog took: " + (end-start) + " (in ms)");
+            */
+
+            long start = System.currentTimeMillis();
+            SimRaDB.getDataBase(this).getCombinedDao().deleteAll(rideId);
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Deleting all took: " + (end-start) + " (in ms)");
 
             Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
             refreshMyRides();

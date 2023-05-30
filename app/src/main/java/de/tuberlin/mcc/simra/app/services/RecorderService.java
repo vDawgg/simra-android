@@ -26,6 +26,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.Queue;
 import java.util.TreeMap;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
@@ -358,6 +360,7 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             List<DataLogEntry> acc = mergeGPSAndSensor(gpsLines, sensorLines);
             Log.d("DEBUG", acc.toString());
 
+            /*
             long start = System.currentTimeMillis();
             DataLog.saveDataLogEntries(acc, this);
             long end = System.currentTimeMillis();
@@ -372,6 +375,12 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             IncidentLog.saveIncidentLog(incidentLog, this);
             end = System.currentTimeMillis();
             Log.d("BENCHMARK", "Writing incidentLog took: " + (end-start) + " (in ms)");
+
+             */
+            long start = System.currentTimeMillis();
+            SimRaDB.getDataBase(this).getCombinedDao().insertAll(acc, new ArrayList<>(incidentLog.getIncidents().values()), new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region, System.currentTimeMillis()));
+            long end = System.currentTimeMillis();
+            Log.d("BENCHMARK", "Saving all took: " + (end-start) + " (in ms)");
 
             editor.putInt("RIDE-KEY", key + 1);
             editor.apply();

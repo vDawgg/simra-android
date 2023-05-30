@@ -16,6 +16,7 @@ public abstract class SimRaDB extends RoomDatabase {
     public abstract DataLogDao getDataLogDao();
     public abstract MetaDataDao getMetaDataDao();
     public abstract IncidentLogDao getIncidentLogDao();
+    public abstract CombinedDao getCombinedDao();
 
     private static volatile SimRaDB INSTANCE;
 
