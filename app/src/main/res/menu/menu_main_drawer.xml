@@ -9,6 +9,10 @@
             android:icon="@drawable/ic_list_black_24dp"
             android:title="@string/title_activity_history" />
         <item
+            android:id="@+id/nav_all_rides"
+            android:icon="@drawable/graph"
+            android:title="@string/all_rides" />
+        <item
             android:id="@+id/nav_demographic_data"
             android:icon="@drawable/ic_face_black_24dp"
             android:title="@string/title_activity_profile" />

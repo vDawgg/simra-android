@@ -707,6 +707,9 @@ public class MainActivity extends BaseActivity
         if (id == R.id.nav_history) {
             Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
             startActivity(intent);
+        } else if (id == R.id.nav_all_rides) {
+            Intent intent = new Intent(MainActivity.this, AllRidesActivity.class);
+            startActivity(intent);
         } else if (id == R.id.nav_demographic_data) {
             Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
             startActivity(intent);

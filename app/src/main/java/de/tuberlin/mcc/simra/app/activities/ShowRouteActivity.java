@@ -648,7 +648,7 @@ public class ShowRouteActivity extends BaseActivity {
             Log.d("BENCHMARK", "Reading incidentLog took: " + (end-start) + " (in ms)");
 */
             long start = System.currentTimeMillis();
-            kotlin.Pair<DataLogEntry[], IncidentLogEntry[]> p = SimRaDB.getDataBase(ShowRouteActivity.this).getCombinedDao().readAll(rideId);
+            kotlin.Pair<DataLogEntry[], IncidentLogEntry[]> p = SimRaDB.getDataBase(ShowRouteActivity.this).getCombinedDao().readDataAndIncidents(rideId);
             List<DataLogEntry> onlyGPS = DataLog.getGPSDataLogEntries(p.getFirst());
             originalDataLog = new DataLog(p.getFirst()[0].rideId, Arrays.asList(p.getFirst()), onlyGPS, DataLog.RideAnalysisData.calculateRideAnalysisData(onlyGPS), p.getFirst()[0].timestamp, p.getFirst()[p.getFirst().length-1].timestamp);
             long end = System.currentTimeMillis();
