@@ -14,6 +14,7 @@ import android.view.ViewTreeObserver;
 import android.widget.TextView;
 
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.res.ResourcesCompat;
 
 import org.osmdroid.events.MapEventsReceiver;
 import org.osmdroid.util.BoundingBox;
@@ -23,6 +24,7 @@ import org.osmdroid.views.MapController;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.IconOverlay;
 import org.osmdroid.views.overlay.MapEventsOverlay;
+import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.Polyline;
 import org.osmdroid.views.overlay.infowindow.InfoWindow;
 
@@ -31,6 +33,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.annotation.MyInfoWindow;
+import de.tuberlin.mcc.simra.app.annotation.RideInfoWindow;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityAllRidesBinding;
 import de.tuberlin.mcc.simra.app.databinding.ActivityShowRouteBinding;
@@ -117,7 +121,9 @@ public class AllRidesActivity extends BaseActivity {
 
     //TODO: Add a popup if no rides have been recorded yet.
     private void showRoute() {
-        for (MetaDataEntry me : MetaData.getMetadataEntriesSortedByKey(this)) {
+        MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this);
+        List<GeoPoint> middleLocations = new ArrayList<>();
+        for (MetaDataEntry me : metaDataEntries) {
             Pair<DataLogEntry[], IncidentLogEntry[]> p = SimRaDB
                     .getDataBase(this)
                     .getCombinedDao()
@@ -130,48 +136,83 @@ public class AllRidesActivity extends BaseActivity {
                     DataLog.RideAnalysisData.calculateRideAnalysisData(onlyGPS),
                     p.getFirst()[0].timestamp,
                     p.getFirst()[p.getFirst().length-1].timestamp);
+            DataLogEntry middleEntry = onlyGPS.get(onlyGPS.size()/2);
+            middleLocations.add(new GeoPoint(middleEntry.latitude, middleEntry.longitude));
 
             IncidentLog incidentLog = IncidentLog.makeIncidentLog(p.getSecond(), me.rideId);
-
-            // Start with thick outline
             Polyline route = dataLog.rideAnalysisData.route;
+
             route.getOutlinePaint().setStrokeWidth(40f);
-            //TODO: Alternate between colors
-            route.getOutlinePaint().setColor(getColor(R.color.colorPrimaryDark));
+            route.getOutlinePaint().setColor(getColorBasedOnIncidents(me));
             route.getOutlinePaint().setStrokeCap(Paint.Cap.ROUND);
             binding.allRidesMap.getOverlayManager().add(route);
 
-            //TODO: Change this, as only one of the two polylines is showing (the smaller one below)
+            routes.add(route);
 
+            MapEventsReceiver mapEventsReceiver = new MapEventsReceiver() {
+                @Override
+                public boolean singleTapConfirmedHelper(GeoPoint p) {
+                    InfoWindow.closeAllInfoWindowsOn(binding.allRidesMap);
+                    return true;
+                }
+
+                @Override
+                public boolean longPressHelper(GeoPoint p) {
+                    return false;
+                }
+            };
+            MapEventsOverlay overlayEvents = new MapEventsOverlay(getBaseContext(), mapEventsReceiver);
             runOnUiThread(() -> {
+                binding.allRidesMap.getOverlays().add(overlayEvents);
+                binding.allRidesMap.invalidate();
+            });
+        }
+
+        runOnUiThread(() -> {
+            for (int i = 0; i < metaDataEntries.length; i++) {
+                routes.get(i).getOutlinePaint().setStrokeWidth(8f);
+                routes.get(i).getOutlinePaint().setColor(getColor(R.color.colorPrimaryDark));
+                routes.get(i).getOutlinePaint().setStrokeCap(Paint.Cap.ROUND);
+                binding.allRidesMap.getOverlayManager().add(routes.get(i));
+
                 Drawable startFlag = AllRidesActivity.this.getResources().getDrawable(R.drawable.startblack, null);
                 Drawable finishFlag = AllRidesActivity.this.getResources().getDrawable(R.drawable.racingflagblack, null);
-                GeoPoint startFlagPoint = dataLog.rideAnalysisData.route.getPoints().get(0);
-                GeoPoint finishFlagPoint = dataLog.rideAnalysisData.route.getPoints().get(dataLog.rideAnalysisData.route.getPoints().size() - 1);
+                GeoPoint startFlagPoint = routes.get(i).getPoints().get(0);
+                GeoPoint finishFlagPoint = routes.get(i).getPoints().get(routes.get(i).getPoints().size() - 1);
 
                 IconOverlay startFlagOverlay = new IconOverlay(startFlagPoint, startFlag);
                 IconOverlay finishFlagOverlay = new IconOverlay(finishFlagPoint, finishFlag);
                 binding.allRidesMap.getOverlays().add(startFlagOverlay);
                 binding.allRidesMap.getOverlays().add(finishFlagOverlay);
 
-                Polyline route2 = dataLog.rideAnalysisData.route;
-                route2.getOutlinePaint().setStrokeWidth(8f);
-                route2.getOutlinePaint().setColor(getColor(R.color.colorPrimary));
-                route2.getOutlinePaint().setStrokeCap(Paint.Cap.ROUND);
-                binding.allRidesMap.getOverlays().add(route2);
-            });
-
-            routes.add(route);
-        }
+                Marker marker = new Marker(binding.allRidesMap);
+                marker.setPosition(middleLocations.get(i));
+                marker.setIcon(ResourcesCompat.getDrawable(getResources(), R.drawable.pin, null));
+                InfoWindow infoWindow = new RideInfoWindow(R.layout.incident_bubble, binding.allRidesMap, metaDataEntries[i]);
+                marker.setInfoWindow(infoWindow);
+                binding.allRidesMap.getOverlays().add(marker);
+                binding.allRidesMap.invalidate();
+            }
+        });
 
         runOnUiThread(() -> {
             if (routes.size() > 0) {
                 BoundingBox bBox = getBoundingBox(routes);
                 zoomToBBox(bBox);
             }
-            Log.d("DEBUG", "Here!");
             binding.allRidesMap.invalidate();
         });
+    }
+
+    //TODO: Work out if this is fine with Ahmet
+    private int getColorBasedOnIncidents(MetaDataEntry metaDataEntry) {
+        if (metaDataEntry.numberOfIncidents > 10 || metaDataEntry.numberOfScaryIncidents > 2) {
+            return getColor(R.color.distanceMarkerDanger);
+        } else if (metaDataEntry.numberOfIncidents > 5 || metaDataEntry.numberOfScaryIncidents >= 1) {
+            return getColor(R.color.distanceMarkerWarning);
+        } else {
+            return getColor(R.color.colorPrimaryDark);
+        }
     }
 
     @Override
@@ -206,7 +247,6 @@ public class AllRidesActivity extends BaseActivity {
     }
 
     private class ShowRideTask extends AsyncTask {
-
         @Override
         protected Object doInBackground(Object[] objects) {
             showRoute();
