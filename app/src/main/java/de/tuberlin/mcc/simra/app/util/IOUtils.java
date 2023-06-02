@@ -200,7 +200,6 @@ public class IOUtils {
                     stringList.remove(0);
                     for (String s : stringList) {
                         IncidentLogEntry incidentLogEntry = IncidentLogEntry.parseEntryFromLine(s, rideId);
-                        Log.d("DEBUG", incidentLogEntry.stringifyDataLogEntry());
                         incidentLogEntries.put(incidentLogEntry.key, incidentLogEntry);
                     }
                     IncidentLog incidentLog = new IncidentLog(rideId, incidentLogEntries, nn_version);

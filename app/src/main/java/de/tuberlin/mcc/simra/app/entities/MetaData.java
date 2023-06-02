@@ -6,10 +6,6 @@ import java.util.List;
 import java.util.Map;
 import de.tuberlin.mcc.simra.app.database.SimRaDB;
 
-
-//TODO: Remove this whole class as it should not be needed anymore
-// This might also apply to DataLog though the logic in that class
-// is not as easily replaceable
 /**
  * //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * // METADATA: contains ...

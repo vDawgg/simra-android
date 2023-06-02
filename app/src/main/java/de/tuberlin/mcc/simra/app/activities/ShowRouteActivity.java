@@ -39,7 +39,6 @@ import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Polyline;
 import org.osmdroid.views.overlay.infowindow.InfoWindow;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -395,10 +394,7 @@ public class ShowRouteActivity extends BaseActivity {
             long startTime = this.originalDataLog.onlyGPSDataLogEntries.get(start).timestamp;
             long endTime = this.originalDataLog.onlyGPSDataLogEntries.get(end).timestamp;
 
-            long start = System.currentTimeMillis();
             DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Updating DataLog took: "+(end-start)+" ms");
         }
 
         // Update MetaData
@@ -633,27 +629,9 @@ public class ShowRouteActivity extends BaseActivity {
     private class LoadOriginalDataLogTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... voids) {
+            kotlin.Pair<DataLog, IncidentLogEntry[]> p = SimRaDB.getDataBase(ShowRouteActivity.this).getCombinedDao().readDataAndIncidents(rideId, ShowRouteActivity.this);
 
-            /*
-            long start = System.currentTimeMillis();
-            originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Reading datalog took: " + (end-start) + " (in ms)");
-
-            Log.d("DEBUG", "OG-DL-size: "+originalDataLog.dataLogEntries.size());
-
-            start = System.currentTimeMillis();
-            incidentLog = IncidentLog.loadIncidentLogWithRideSettingsInformation(rideId, bike, pLoc, child == 1, trailer == 1, ShowRouteActivity.this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Reading incidentLog took: " + (end-start) + " (in ms)");
-*/
-            long start = System.currentTimeMillis();
-            kotlin.Pair<DataLogEntry[], IncidentLogEntry[]> p = SimRaDB.getDataBase(ShowRouteActivity.this).getCombinedDao().readAll(rideId);
-            List<DataLogEntry> onlyGPS = DataLog.getGPSDataLogEntries(p.getFirst());
-            originalDataLog = new DataLog(p.getFirst()[0].rideId, Arrays.asList(p.getFirst()), onlyGPS, DataLog.RideAnalysisData.calculateRideAnalysisData(onlyGPS), p.getFirst()[0].timestamp, p.getFirst()[p.getFirst().length-1].timestamp);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Reading datalog and incidentLog took: " + (end-start) + " (in ms)");
-
+            originalDataLog = p.getFirst();
             Polyline originalRoute = originalDataLog.rideAnalysisData.route;
 
             incidentLog = IncidentLog.makeIncidentLogWithRideSettings(p.getSecond(), rideId, bike, pLoc, child == 1, trailer == 1, ShowRouteActivity.this);
