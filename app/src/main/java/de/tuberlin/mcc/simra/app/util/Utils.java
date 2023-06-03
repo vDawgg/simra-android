@@ -92,11 +92,10 @@ public class Utils {
         IncidentLog incidentLog = IncidentLog.filterIncidentLogUploadReady(IncidentLog.loadIncidentLog(rideId, context), null, null, null, null, true);
         String dataLog = DataLog.loadDataLog(rideId, context).toString();
 
-        content.append("=========================")
+        content.append(System.lineSeparator())
+                .append("=========================")
                 .append(System.lineSeparator())
                 .append(dataLog);
-
-        Log.d("DEBUG", "Consolidated ride for upload:\n"+content.toString());
 
         return new Pair<>(content.toString(), incidentLog);
     }
@@ -165,13 +164,11 @@ public class Utils {
             Pair<List<IncidentLogEntry>, Integer> findAccEventOnlineResult = findAccEventOnline(rideId, bike, pLoc, context);
             foundEvents = findAccEventOnlineResult.first;
             nn_version = findAccEventOnlineResult.second;
-            Log.d("DEBUG", "nn_version obtained online: "+nn_version);
         }
         if (foundEvents != null && foundEvents.size() > 0) {
             return new Pair<>(foundEvents, nn_version);
         }
         else {
-            Log.d("DEBUG", "Trying to find events locally");
             return findAccEventsLocal(rideId, state, context);
         }
     }
@@ -212,7 +209,7 @@ public class Utils {
 
                     //upload timeout
                     if(startTime + uploadTimeoutMS < System.currentTimeMillis())
-                        return null;
+                        return new Pair<>(null, -2);
                 }
 
                 os.flush();
@@ -260,11 +257,7 @@ public class Utils {
                     }
                     index++;
                 }
-                //TODO: Check if the nn_version is actually written to the IncidentEntries later down the line
-                // If it fails -> Do it here!
-                Log.d("DEBUG", "Why is the second version not showing????");
-                Log.d("DEBUG", "Incidents obtained online: "+foundIncidents);
-                Log.d("DEBUG", "nn_version obtained online: "+nn_version);
+
                 return new Pair<>(foundIncidents, nn_version);
             }
         } catch (IOException | JSONException e) {
@@ -274,6 +267,7 @@ public class Utils {
         return new Pair<>(null, -2);
     }
 
+    //TODO: Test why this returns fewer incidents than the old version
     public static Pair<List<IncidentLogEntry>, Integer> findAccEventsLocal(int rideId, int state, Context context) {
         class Event {
             final double lat;
@@ -295,8 +289,6 @@ public class Utils {
 
         List<IncidentLogEntry> accEvents = new ArrayList<>(6);
 
-        // Each String[] in ride is a part of the ride which is approx. 3 seconds long.
-        List<String[]> ride = new ArrayList<>();
         List<Event> events = new ArrayList<>(6);
         IncidentLogEntry.InvolvedRoadUser involvedRoadUser = new IncidentLogEntry.InvolvedRoadUser(false, false, false, false, false, false, false, false, false, false);
         accEvents.add(new IncidentLogEntry(0, 999.0, 999.0, 0L, 0, false, false, 0, 0, involvedRoadUser, false, ""));
@@ -344,7 +336,8 @@ public class Utils {
                     maxZ = (tempEntry.accelerometerZ >= maxZ) ? tempEntry.accelerometerZ : maxZ;
                     minZ = (tempEntry.accelerometerZ < minZ) ? tempEntry.accelerometerZ : minZ;
 
-                    if (entries.length > j + 1 && entries[j + 1].latitude == null) {
+                    if (entries.length > j + 1 && !(entries[j + 1].latitude == null)) {
+                        entry = entries[j + 1];
                         newSubPart = false;
                         break;
                     }
@@ -363,8 +356,8 @@ public class Utils {
             // between the actual event and the top 6 events so far.
             int threshold = 10000; // 10 seconds
             long minTimeDelta = 999999999;
-            for (int j = 0; j < events.size(); j++) {
-                long actualTimeDelta = timestamp - events.get(j).timeStamp;
+            for (Event event : events) {
+                long actualTimeDelta = timestamp - event.timeStamp;
                 if (actualTimeDelta < minTimeDelta) {
                     minTimeDelta = actualTimeDelta;
                 }
@@ -372,45 +365,39 @@ public class Utils {
             boolean enoughTimePassed = minTimeDelta > threshold;
 
             // Check whether actualX is one of the top 2 events
-            boolean eventAdded = false;
-            if (maxXDelta > events.get(0).maxXDelta && !eventAdded && enoughTimePassed) {
+            if (maxXDelta > events.get(0).maxXDelta && enoughTimePassed) {
                 Event temp = events.get(0);
                 events.set(0, currEvent);
                 accEvents.set(0, new IncidentLogEntry(0, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
 
                 events.set(1, temp);
                 accEvents.set(1, new IncidentLogEntry(1, temp.lat, temp.lon, temp.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
-                eventAdded = true;
-            } else if (maxXDelta > events.get(1).maxXDelta && !eventAdded && enoughTimePassed) {
+            } else if (maxXDelta > events.get(1).maxXDelta && enoughTimePassed) {
                 events.set(1, currEvent);
                 accEvents.set(1, new IncidentLogEntry(1, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
-                eventAdded = true;
             }
             // Check whether actualY is one of the top 2 events
-            else if (maxYDelta > events.get(2).maxYDelta && !eventAdded && enoughTimePassed) {
+            else if (maxYDelta > events.get(2).maxYDelta && enoughTimePassed) {
                 Event temp = events.get(2);
                 events.set(2, currEvent);
                 accEvents.set(2, new IncidentLogEntry(2, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
                 events.set(3, temp);
                 accEvents.set(3, new IncidentLogEntry(3, temp.lat, temp.lon, temp.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
-                eventAdded = true;
-            } else if (maxYDelta > events.get(3).maxYDelta && !eventAdded && enoughTimePassed) {
+            } else if (maxYDelta > events.get(3).maxYDelta && enoughTimePassed) {
                 events.set(3, currEvent);
                 accEvents.set(3, new IncidentLogEntry(3, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
-                eventAdded = true;
             }
             // Check whether actualZ is one of the top 2 events
-            else if (maxZDelta > events.get(4).maxZDelta && !eventAdded && enoughTimePassed) {
+            else if (maxZDelta > events.get(4).maxZDelta && enoughTimePassed) {
                 Event temp = events.get(4);
                 events.set(4, currEvent);
                 accEvents.set(4, new IncidentLogEntry(4, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
                 events.set(5, temp);
                 accEvents.set(5, new IncidentLogEntry(5, temp.lat, temp.lon, temp.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
 
-            } else if (maxZDelta > events.get(5).maxZDelta && !eventAdded && enoughTimePassed) {
+            } else if (maxZDelta > events.get(5).maxZDelta && enoughTimePassed) {
                 events.set(5, currEvent);
                 accEvents.set(5, new IncidentLogEntry(5, currEvent.lat, currEvent.lon, currEvent.timeStamp, 0, false, false, 0, 0, involvedRoadUser, false, ""));
-                eventAdded = true;
             }
         }
 
@@ -423,9 +410,6 @@ public class Utils {
                 incidents.add(incidentLogEntry);
             }
         }
-
-        Pair<List<IncidentLogEntry>, Integer> r = new Pair<>(incidents, 0);
-        Log.d("DEBUG", "nn_version of return: " + r.second);
 
         return new Pair<>(incidents, 0);
     }

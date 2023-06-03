@@ -69,6 +69,26 @@ public class IncidentLog {
         return new IncidentLog(rideId, incidents, incidentLogEntries[0].nn_version);
     }
 
+    public static IncidentLog makeIncidentLogWithRideSettings(IncidentLogEntry[] incidentLogEntries, int rideId, Integer bikeType, Integer phoneLocation, Boolean childOnBoard, Boolean bikeWithTrailer, Context context) {
+        TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
+
+        if (incidentLogEntries.length == 0) {
+            return new IncidentLog(rideId, incidents, 0);
+        }
+
+        for (IncidentLogEntry incidentLogEntry : incidentLogEntries) {
+            incidentLogEntry.bikeType = bikeType;
+            incidentLogEntry.phoneLocation = phoneLocation;
+            incidentLogEntry.childOnBoard = childOnBoard;
+            incidentLogEntry.bikeWithTrailer = bikeWithTrailer;
+            if (!(incidentLogEntry.incidentType == IncidentLogEntry.INCIDENT_TYPE.FOR_RIDE_SETTINGS) && incidentLogEntry.isInTimeFrame(null, null)) {
+                incidents.put(incidentLogEntry.key, incidentLogEntry);
+            }
+        }
+
+        return new IncidentLog(rideId, incidents, incidentLogEntries[0].nn_version);
+    }
+
     public static IncidentLog filterIncidentLogTime(IncidentLog incidentLog, Long startTimeBoundary, Long endTimeBoundary) {
         TreeMap<Integer, IncidentLogEntry> incidents = new TreeMap() {};
         for (Map.Entry<Integer, IncidentLogEntry> incidentLogEntry : incidentLog.getIncidents().entrySet()) {

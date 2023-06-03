@@ -47,8 +47,10 @@ import java.util.concurrent.TimeUnit;
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.annotation.IncidentPopUpActivity;
 import de.tuberlin.mcc.simra.app.annotation.MarkerFunct;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityShowRouteBinding;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
+import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLogEntry;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
@@ -392,10 +394,7 @@ public class ShowRouteActivity extends BaseActivity {
             long startTime = this.originalDataLog.onlyGPSDataLogEntries.get(start).timestamp;
             long endTime = this.originalDataLog.onlyGPSDataLogEntries.get(end).timestamp;
 
-            long start = System.currentTimeMillis();
             DataLog.updateDataLogBoundaries(dataLog.rideId, startTime, endTime, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Updating DataLog took: "+(end-start)+" ms");
         }
 
         // Update MetaData
@@ -630,20 +629,12 @@ public class ShowRouteActivity extends BaseActivity {
     private class LoadOriginalDataLogTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... voids) {
+            kotlin.Pair<DataLog, IncidentLogEntry[]> p = SimRaDB.getDataBase(ShowRouteActivity.this).getCombinedDao().readDataAndIncidents(rideId, ShowRouteActivity.this);
 
-            long start = System.currentTimeMillis();
-            originalDataLog = DataLog.loadDataLog(rideId, ShowRouteActivity.this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Reading datalog took: " + (end-start) + " (in ms)");
-
-            Log.d("DEBUG", "OG-DL-size: "+originalDataLog.dataLogEntries.size());
-
+            originalDataLog = p.getFirst();
             Polyline originalRoute = originalDataLog.rideAnalysisData.route;
 
-            start = System.currentTimeMillis();
-            incidentLog = IncidentLog.loadIncidentLogWithRideSettingsInformation(rideId, bike, pLoc, child == 1, trailer == 1, ShowRouteActivity.this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Reading incidentLog took: " + (end-start) + " (in ms)");
+            incidentLog = IncidentLog.makeIncidentLogWithRideSettings(p.getSecond(), rideId, bike, pLoc, child == 1, trailer == 1, ShowRouteActivity.this);
 
             if (editableRoute != null) {
                 binding.showRouteMap.getOverlayManager().remove(editableRoute);

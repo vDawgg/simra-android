@@ -24,7 +24,7 @@ public class DataLog {
     public final long startTime;
     public final long endTime;
 
-    private DataLog(
+    public DataLog(
             int rideId,
             List<DataLogEntry> dataLogEntries,
             List<DataLogEntry> onlyGPSDataLogEntries, RideAnalysisData rideAnalysisData,

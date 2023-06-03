@@ -204,7 +204,6 @@ public class UploadService extends Service {
                     regionProfilesList.add(Profile.loadProfile(i, context));
                 }
 
-                //TODO: Test this!
                 MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(context);
 
                 for (MetaDataEntry metaDataEntry : metaDataEntries) {
@@ -245,11 +244,8 @@ public class UploadService extends Service {
                         if (response.first.equals(200)) {
                             metaDataEntry.state = MetaData.STATE.SYNCED;
 
-                            //TODO: Test this!
                             MetaData.updateOrAddMetadataEntryForRide(metaDataEntry, context);
 
-                            //Are the metadataEntries updated automatically? Otherwise this does not
-                            //make much sense
                             globalProfile = updateProfileFromMetaData(globalProfile, metaDataEntry);
                             regionProfile = updateProfileFromMetaData(regionProfile, metaDataEntry);
 

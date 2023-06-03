@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.TimeZone;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityHistoryBinding;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
@@ -116,10 +117,7 @@ public class HistoryActivity extends BaseActivity {
      * newest to oldest)
      */
     private void refreshMyRides() {
-        long start = System.currentTimeMillis();
         MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this);
-        long end = System.currentTimeMillis();
-        Log.d("BENCHMARK", "Reading metadataLog took: " + (end-start) + " (in ms)");
 
         if (metaDataEntries.length > 0) {
             List<String> stringArrayList = new ArrayList<>();
@@ -193,21 +191,7 @@ public class HistoryActivity extends BaseActivity {
             clicked = clicked.replace("#", "").split(";")[0];
 
             int rideId = Integer.parseInt(clicked);
-
-            long start = System.currentTimeMillis();
-            MetaData.deleteMetadataEntryForRide(rideId, this);
-            long end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Deleting metadataLog took: " + (end-start) + " (in ms)");
-
-            start = System.currentTimeMillis();
-            DataLog.deleteEntriesOfRide(rideId, this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Deleting dataLog took: " + (end-start) + " (in ms)");
-
-            start = System.currentTimeMillis();
-            IncidentLog.deleteIncidentsOfRide(rideId, this);
-            end = System.currentTimeMillis();
-            Log.d("BENCHMARK", "Deleting incidentLog took: " + (end-start) + " (in ms)");
+            SimRaDB.getDataBase(this).getCombinedDao().deleteAll(rideId, this);
 
             Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
             refreshMyRides();
