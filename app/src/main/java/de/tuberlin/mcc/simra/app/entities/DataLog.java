@@ -71,20 +71,6 @@ public class DataLog {
         return new DataLog(rideId, dataPoints, onlyGPSDataLogEntries, rideAnalysisData, startTime, endTime);
     }
 
-    public static List<DataLogEntry> getGPSDataLogEntries(DataLogEntry[] dataLogEntries) {
-        List<DataLogEntry> onlyGPSDataLogEntries = new ArrayList<>();
-
-        if (dataLogEntries.length > 0) {
-            for (DataLogEntry entry : dataLogEntries) {
-                if (entry.longitude != null && entry.latitude != null) {
-                    onlyGPSDataLogEntries.add(entry);
-                }
-            }
-        }
-
-        return onlyGPSDataLogEntries;
-    }
-
     /**
      * Returns all DataLogEntries from the db
      * @param rideId the rideId of the given ride
