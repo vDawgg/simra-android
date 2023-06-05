@@ -22,10 +22,6 @@ import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.snackbar.Snackbar;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,15 +29,19 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.databinding.ActivityHistoryBinding;
+import de.tuberlin.mcc.simra.app.entities.DataLog;
+import de.tuberlin.mcc.simra.app.entities.IncidentLog;
 import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.entities.Profile;
 import de.tuberlin.mcc.simra.app.services.UploadService;
 import de.tuberlin.mcc.simra.app.util.BaseActivity;
-import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 
 import static de.tuberlin.mcc.simra.app.util.SharedPref.lookUpBooleanSharedPrefs;
@@ -112,48 +112,30 @@ public class HistoryActivity extends BaseActivity {
         });
     }
 
+    /**
+     * Loads all rides currently saved in the db and shows them in the ArrayAdapter (sorted from
+     * newest to oldest)
+     */
     private void refreshMyRides() {
-        List<String[]> metaDataLines = new ArrayList<>();
+        MetaDataEntry[] metaDataEntries = MetaData.getMetadataEntriesSortedByKey(this);
 
-        File metaDataFile = IOUtils.Files.getMetaDataFile(this);
-        if (metaDataFile.exists()) {
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(metaDataFile));
-                // br.readLine() to skip the first line which contains the headers
-                br.readLine();
-                br.readLine();
-                String line;
-                while (((line = br.readLine()) != null)) {
-                    if (!line.startsWith("key") && !line.startsWith("null")) {
-                        metaDataLines.add(line.split(","));
-                    }
-                }
-                Log.d(TAG, "metaDataLines: " + Arrays.deepToString(metaDataLines.toArray()));
-            } catch (IOException e) {
-                e.printStackTrace();
+        if (metaDataEntries.length > 0) {
+            List<String> stringArrayList = new ArrayList<>();
+            for (MetaDataEntry me : metaDataEntries) {
+                stringArrayList.add(getRideString(me));
             }
 
-            ridesArr = new String[metaDataLines.size()];
-            for (int i = 0; i < metaDataLines.size(); i++) {
-                String[] metaDataLine = metaDataLines.get(i);
-                if (metaDataLine.length > 2 && !(metaDataLine[0].equals("key"))) {
-                    ridesArr[((metaDataLines.size()) - i) - 1] = listToTextShape(metaDataLine);
-                }
+            List<String[]> metaDataLines = new ArrayList<>();
+            for (MetaDataEntry entry : metaDataEntries) {
+                metaDataLines.add(entry.metaDataEntryToArray());
             }
 
-            List<String> stringArrayList = new ArrayList<>(Arrays.asList(ridesArr));
             MyArrayAdapter myAdapter = new MyArrayAdapter(this, R.layout.row_icons, stringArrayList, metaDataLines);
             binding.listView.setAdapter(myAdapter);
-
         } else {
-
-            Log.d(TAG, "metaData.csv doesn't exists");
-
             Snackbar snackbar = Snackbar.make(findViewById(R.id.coordinator_layout), (getString(R.string.noHistory)), Snackbar.LENGTH_LONG);
             snackbar.show();
-
         }
-
     }
 
     @Override
@@ -172,18 +154,23 @@ public class HistoryActivity extends BaseActivity {
         this.unregisterReceiver(br);
     }
 
-    private String listToTextShape(String[] item) {
+    /**
+     * Create text representation via the metadata of a ride
+     *
+     * @param entry the metadata entry for the ride
+     * @return the string with ride-info
+     */
+    private String getRideString(MetaDataEntry entry) {
         String todo = getString(R.string.newRideInHistoryActivity);
 
-        if (item[3].equals("1")) {
+        if (entry.state == 1) {
             todo = getString(R.string.rideAnnotatedInHistoryActivity);
-        } else if (item[3].equals("2")) {
+        } else if (entry.state == 2) {
             todo = getString(R.string.rideUploadedInHistoryActivity);
         }
 
-        long millis = Long.parseLong(item[2]) - Long.parseLong(item[1]);
-        int minutes = Math.round((millis / 1000 / 60));
-        Date dt = new Date(Long.parseLong(item[1]));
+        int minutes = Math.round(((entry.endTime - entry.startTime) / 1000 / 60));
+        Date dt = new Date(entry.startTime);
         Calendar localCalendar = Calendar.getInstance(TimeZone.getDefault());
         localCalendar.setTime(dt);
         Locale locale = Resources.getSystem().getConfiguration().locale;
@@ -191,11 +178,7 @@ public class HistoryActivity extends BaseActivity {
         SimpleDateFormat wholeDateFormat = new SimpleDateFormat(getString(R.string.datetime_format), locale);
         String datetime = wholeDateFormat.format(dt);
 
-        if (item.length > 6) {
-            return "#" + item[0] + ";" + datetime + ";" + todo + ";" + minutes + ";" + item[3] + ";" + item[6];
-        } else {
-            return "#" + item[0] + ";" + datetime + ";" + todo + ";" + minutes + ";" + item[3] + ";" + 0;
-        }
+        return "#" + entry.rideId + ";" + datetime + ";" + todo + ";" + minutes + ";" + entry.state + ";" + Objects.requireNonNullElse(entry.distance, 0);
     }
 
     public void fireDeletePrompt(int position, MyArrayAdapter arrayAdapter) {
@@ -203,21 +186,13 @@ public class HistoryActivity extends BaseActivity {
         alert.setTitle(getString(R.string.warning));
         alert.setMessage(getString(R.string.delete_file_warning));
         alert.setPositiveButton(R.string.delete_ride_approve, (dialog, id) -> {
-            File[] dirFiles = getFilesDir().listFiles();
-            Log.d(TAG, "btnDelete.onClick() dirFiles: " + Arrays.deepToString(dirFiles));
             String clicked = (String) binding.listView.getItemAtPosition(position);
             Log.d(TAG, "btnDelete.onClick() clicked: " + clicked);
             clicked = clicked.replace("#", "").split(";")[0];
-            if (dirFiles.length != 0) {
-                for (File actualFile : dirFiles) {
-                    if (actualFile.getName().startsWith(clicked + "_") || actualFile.getName().startsWith("accEvents" + clicked)) {
 
-                        /* don't delete the following line! */
-                        Log.i(TAG, actualFile.getName() + " deleted: " + actualFile.delete());
-                    }
-                }
-            }
-            MetaData.deleteMetaDataEntryForRide(Integer.parseInt(clicked), this);
+            int rideId = Integer.parseInt(clicked);
+            SimRaDB.getDataBase(this).getCombinedDao().deleteAll(rideId, this);
+
             Toast.makeText(HistoryActivity.this, R.string.ride_deleted, Toast.LENGTH_SHORT).show();
             refreshMyRides();
         });
@@ -330,22 +305,11 @@ public class HistoryActivity extends BaseActivity {
                 holder.btnDelete.setVisibility(View.INVISIBLE);
             }
             row.setOnClickListener(v -> {
-                // gets the files in the directory
-                // lists all the files into an array
-                File[] dirFiles = new File(IOUtils.Directories.getBaseFolderPath(context)).listFiles();
                 String clicked = (String) binding.listView.getItemAtPosition(position);
-                Log.d(TAG, "dirFiles.length: " + dirFiles.length + " clicked: " + clicked + " position: " + position);
-                clicked = clicked.replace("#", "").split(";")[0];
-                if (dirFiles.length != 0) {
-                    // loops through the array of files, outputting the name to console
-                    for (File dirFile : dirFiles) {
-                        String fileOutput = dirFile.getName();
-                        Log.d(TAG, "fileOutput: " + fileOutput + " clicked: " + clicked + "_");
-                        if (fileOutput.startsWith(clicked + "_")) {
-                            ShowRouteActivity.startShowRouteActivity(Integer.parseInt(fileOutput.split("_", -1)[0]), Integer.parseInt(metaDataLines.get(metaDataLines.size() - position - 1)[3]), true, HistoryActivity.this);
-                        }
-                    }
-                }
+                int rideID = Integer.parseInt(clicked.replace("#", "").split(";")[0]);
+
+                MetaDataEntry entry = MetaData.getMetadataEntryForRide(rideID, HistoryActivity.this);
+                ShowRouteActivity.startShowRouteActivity(rideID, entry.state, true, HistoryActivity.this);
             });
 
             holder.btnDelete.setOnClickListener(v -> {

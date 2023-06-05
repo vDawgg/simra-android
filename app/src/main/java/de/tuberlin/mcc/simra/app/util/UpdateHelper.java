@@ -20,6 +20,7 @@ public class UpdateHelper {
         VersionUpdater.updateToV50(context, lastAppVersion);
         VersionUpdater.updateToV52(context, lastAppVersion);
         VersionUpdater.updateToV58(context, lastAppVersion);
+        VersionUpdater.updateToV93(context, lastAppVersion);
         SharedPref.writeIntToSharedPrefs("App-Version", BuildConfig.VERSION_CODE, "simraPrefs", context);
     }
 }

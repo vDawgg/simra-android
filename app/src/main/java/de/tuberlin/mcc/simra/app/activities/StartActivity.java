@@ -31,7 +31,6 @@ import de.tuberlin.mcc.simra.app.util.PermissionHelper;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.UpdateHelper;
 
-import static de.tuberlin.mcc.simra.app.util.LogHelper.showDataDirectory;
 import static de.tuberlin.mcc.simra.app.util.LogHelper.showKeyPrefs;
 import static de.tuberlin.mcc.simra.app.util.LogHelper.showMetadata;
 import static de.tuberlin.mcc.simra.app.util.LogHelper.showStatistics;
@@ -60,7 +59,6 @@ public class StartActivity extends BaseActivity {
         Log.d(TAG, "getFilesDir(): " + Arrays.toString(new File(getFilesDir(), "../shared_prefs").listFiles()));
         Log.d(TAG, "onCreate() started");
         showKeyPrefs(this);
-        showDataDirectory(this);
         showMetadata(this);
         showStatistics(this);
         deleteErrorLogsForVersion(this, 26);

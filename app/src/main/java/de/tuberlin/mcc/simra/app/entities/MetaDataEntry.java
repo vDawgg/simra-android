@@ -1,6 +1,14 @@
 package de.tuberlin.mcc.simra.app.entities;
 
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.Index;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "metadata_table", indices = {@Index("lastModified")})
 public class MetaDataEntry {
+    @PrimaryKey
+    @NonNull
     public Integer rideId;
     public Long startTime;
     public Long endTime;
@@ -10,8 +18,9 @@ public class MetaDataEntry {
     public Long distance;
     public Integer numberOfScaryIncidents;
     public Integer region;
+    public Long lastModified;
 
-    public MetaDataEntry(Integer rideId, Long startTime, Long endTime, Integer state, Integer numberOfIncidents, Long waitedTime, Long distance, Integer numberOfScaryIncidents, Integer region) {
+    public MetaDataEntry(@NonNull Integer rideId, Long startTime, Long endTime, Integer state, Integer numberOfIncidents, Long waitedTime, Long distance, Integer numberOfScaryIncidents, Integer region, Long lastModified) {
         this.rideId = rideId;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -21,6 +30,7 @@ public class MetaDataEntry {
         this.distance = distance != null ? distance : 0;
         this.numberOfScaryIncidents = numberOfScaryIncidents != null ? numberOfScaryIncidents : 0;
         this.region = region != null ? region : 0;
+        this.lastModified = lastModified;
     }
 
     public static MetaDataEntry parseEntryFromLine(String string) {
@@ -34,11 +44,13 @@ public class MetaDataEntry {
                 Long.parseLong(dataLogLine[5]),
                 Long.parseLong(dataLogLine[6]),
                 Integer.parseInt(dataLogLine[7]),
-                Integer.parseInt(dataLogLine[8])
+                Integer.parseInt(dataLogLine[8]),
+                System.currentTimeMillis()
         );
     }
 
 
+    //This is still needed for the upload-task
     /**
      * Stringifies the MetaDataEntry Object to a CSV Log Line
      *
@@ -46,5 +58,19 @@ public class MetaDataEntry {
      */
     public String stringifyMetaDataEntry() {
         return rideId + "," + startTime + "," + endTime + "," + state + "," + numberOfIncidents + "," + waitedTime + "," + distance + "," + numberOfScaryIncidents + "," + region;
+    }
+
+    public String[] metaDataEntryToArray() {
+        String[] s = new String[9];
+        s[0] = rideId.toString();
+        s[1] = startTime.toString();
+        s[2] = endTime.toString();
+        s[3] = state.toString();
+        s[4] = numberOfIncidents.toString();
+        s[5] = waitedTime.toString();
+        s[6] = distance.toString();
+        s[7] = numberOfIncidents.toString();
+        s[8] = region.toString();
+        return s;
     }
 }

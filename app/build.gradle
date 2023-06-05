@@ -13,8 +13,8 @@ android {
         applicationId "de.tuberlin.mcc.simra.app"
         minSdkVersion 23
         targetSdkVersion 33
-        versionCode 92
-        versionName "92.0"
+        versionCode 93
+        versionName "93.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // defining the build date
@@ -26,11 +26,11 @@ android {
             properties.load(project.rootProject.file('local.properties').newDataInputStream())
         }
 
-
         buildConfigField "String", API_ENDPOINT, properties.getProperty(API_ENDPOINT) ?: "\"https://vm2.mcc.tu-berlin.de:8082/\""
         buildConfigField "String", API_VERSION, properties.getProperty(API_VERSION) ?: "\"13/\""
 
     }
+    
     buildTypes {
 
         release {
@@ -78,6 +78,7 @@ dependencies {
 
     // RingBuffer
     implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'androidx.room:room-common:2.4.2'
 
     // Tests
     testImplementation 'junit:junit:4.13'
@@ -90,4 +91,9 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.6.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
 
+
+    def room_version = "2.5.0"
+
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
 }

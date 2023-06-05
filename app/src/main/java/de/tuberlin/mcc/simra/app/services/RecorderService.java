@@ -26,12 +26,15 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Polyline;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.TreeMap;
 
 import de.tuberlin.mcc.simra.app.R;
+import de.tuberlin.mcc.simra.app.database.SimRaDB;
 import de.tuberlin.mcc.simra.app.entities.DataLog;
 import de.tuberlin.mcc.simra.app.entities.DataLogEntry;
 import de.tuberlin.mcc.simra.app.entities.IncidentLog;
@@ -41,7 +44,6 @@ import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.util.ConnectionManager;
 import de.tuberlin.mcc.simra.app.util.Constants;
 import de.tuberlin.mcc.simra.app.util.ForegroundServiceNotificationManager;
-import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.IncidentBroadcaster;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.UnitHelper;
@@ -51,8 +53,7 @@ import de.tuberlin.mcc.simra.app.util.ble.ConnectionEventListener;
 import static de.tuberlin.mcc.simra.app.services.OBSService.ACTION_VALUE_RECEIVED_DISTANCE;
 import static de.tuberlin.mcc.simra.app.services.OBSService.EXTRA_VALUE_SERIALIZED;*/
 import static de.tuberlin.mcc.simra.app.util.SharedPref.lookUpIntSharedPrefs;
-import static de.tuberlin.mcc.simra.app.util.Utils.mergeGPSandSensorLines;
-import static de.tuberlin.mcc.simra.app.util.Utils.overwriteFile;
+import static de.tuberlin.mcc.simra.app.util.Utils.mergeGPSAndSensor;
 
 public class RecorderService extends Service implements SensorEventListener, LocationListener {
     public static final String TAG = "RecorderService_LOG:";
@@ -354,10 +355,11 @@ public class RecorderService extends Service implements SensorEventListener, Loc
             recordingHandler.removeCallbacksAndMessages(null);
             int region = lookUpIntSharedPrefs("Region", 0, "Profile", this);
             addOBSIncidents(obsMeasurements, incidentLog, gpsLines, this);
-            accGpsString = mergeGPSandSensorLines(gpsLines,sensorLines);
-            overwriteFile((IOUtils.Files.getFileInfoLine() + DataLog.DATA_LOG_HEADER + System.lineSeparator() + accGpsString), IOUtils.Files.getGPSLogFile(key, false, this));
-            MetaData.updateOrAddMetaDataEntryForRide(new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region), this);
-            IncidentLog.saveIncidentLog(incidentLog, this);
+
+            List<DataLogEntry> acc = mergeGPSAndSensor(gpsLines, sensorLines);
+            MetaDataEntry metaDataEntry = new MetaDataEntry(key, startTime, endTime, MetaData.STATE.JUST_RECORDED, 0, waitedTime, Math.round(route.getDistance()), 0, region, System.currentTimeMillis());
+            SimRaDB.getDataBase(this).getCombinedDao().insertAll(acc, incidentLog, metaDataEntry, this);
+
             editor.putInt("RIDE-KEY", key + 1);
             editor.apply();
         }
@@ -413,10 +415,10 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                     // if the obs measurement is between -100 an 150cm, it is a close pass and needs to be shown as a near miss incident, else a "regular" pass, just to be shown in the csv and hidden on the map.
                     if ((realLeftDistance >= -100 && realLeftDistance <= 150) || ((realRightDistance >= -100 && realRightDistance <= 150))) {
                         Log.d(TAG, "Adding hidden Close Pass with TS: " + lastDataLogEntryTS + " realLeftDistance: " + realLeftDistance + " and realRightDistance: " + realRightDistance);
-                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withIncidentType(IncidentLogEntry.INCIDENT_TYPE.OBS_UNKNOWN).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(3000).build());
+                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(IncidentLogEntry.INCIDENT_TYPE.OBS_UNKNOWN).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(3000).build());
                     } else {
                         Log.d(TAG, "Adding visible Close Pass with TS: " + lastDataLogEntryTS + " realLeftDistance: " + realLeftDistance + " and realRightDistance: " + realRightDistance);
-                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withIncidentType(IncidentLogEntry.INCIDENT_TYPE.CLOSE_PASS).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(2000).build());
+                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(IncidentLogEntry.INCIDENT_TYPE.CLOSE_PASS).withBaseInformation(lastDataLogEntryTS, lastDataLogEntryLat, lastDataLogEntryLon).withDescription(measurement.getIncidentDescription(context)).withKey(2000).build());
                     }
                     // finish, when at the end of the ride.
                     if (j+1 >= gpsLines.size()) {
@@ -484,9 +486,10 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                 rotationQueueZ.add(rotationMatrix[2]);
                 rotationQueueC.add(rotationMatrix[3]);
             }
-             /**/
-            /**/if (accelerometerQueueX.size() >= 30 && linearAccelerometerQueueX.size() >= 30 && rotationQueueX.size() >= 30) {
+
+            if (accelerometerQueueX.size() >= 30 && linearAccelerometerQueueX.size() >= 30 && rotationQueueX.size() >= 30) {
                 DataLogEntry.DataLogEntryBuilder dataLogEntryBuilder = DataLogEntry.newBuilder();
+                dataLogEntryBuilder.withRideId(key);
                 long lastAccUpdate = System.currentTimeMillis();
                 dataLogEntryBuilder.withTimestamp(lastAccUpdate);
                 dataLogEntryBuilder.withAccelerometer(
@@ -537,7 +540,7 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                     );
 
                     if (incidentDuringRide != null) {
-                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withIncidentType(incidentDuringRide).withBaseInformation(lastAccUpdate, lastLocation.getLatitude(), lastLocation.getLongitude()).build());
+                        incidentLog.updateOrAddIncident(IncidentLogEntry.newBuilder().withRideId(key).withIncidentType(incidentDuringRide).withBaseInformation(lastAccUpdate, lastLocation.getLatitude(), lastLocation.getLongitude()).build(), 0);
                         incidentDuringRide = null;
                     }
 
@@ -561,6 +564,7 @@ public class RecorderService extends Service implements SensorEventListener, Loc
                     dataLogEntryBuilder.withOBS(lastOBSDistanceValue.leftSensorValues.get(0), null, null, null, null);
                 }*/
 
+                //What happens when no gps-line has been written? -> Why is lineAdded set to true?
                 if(isGPSLine) {
                     gpsLines.add(dataLogEntryBuilder.build());
                 } else if(!gpsLines.isEmpty()) {

@@ -1,5 +1,9 @@
 package de.tuberlin.mcc.simra.app.activities;
 
+import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaDataDB;
+import static de.tuberlin.mcc.simra.app.util.IOUtils.zipToDb;
+import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZipDB;
+
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -19,30 +23,23 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+
+import java.io.File;
+
 import de.tuberlin.mcc.simra.app.BuildConfig;
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.databinding.ActivitySettingsBinding;
+import de.tuberlin.mcc.simra.app.entities.MetaData;
+import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.services.DebugUploadService;
 import de.tuberlin.mcc.simra.app.util.BaseActivity;
 import de.tuberlin.mcc.simra.app.util.ConnectionManager;
 import de.tuberlin.mcc.simra.app.util.IOUtils;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
 import de.tuberlin.mcc.simra.app.util.UnitHelper;
-
-import static de.tuberlin.mcc.simra.app.util.IOUtils.Directories.getBaseFolderPath;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.importSimRaData;
-import static de.tuberlin.mcc.simra.app.util.IOUtils.zipTo;
-import static de.tuberlin.mcc.simra.app.util.Utils.prepareDebugZip;
-import static de.tuberlin.mcc.simra.app.util.Utils.sortFileListLastModified;
-
 
 public class SettingsActivity extends BaseActivity {
 
@@ -233,7 +230,7 @@ public class SettingsActivity extends BaseActivity {
                 builder.setPositiveButton(R.string.continueText, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        fireDebugPrompt();
+                        fireDebugPromptDB();
                     }
                 });
                 builder.setNegativeButton(R.string.cancel, null);
@@ -257,43 +254,12 @@ public class SettingsActivity extends BaseActivity {
         this.unregisterReceiver(br);
     }
 
-
-    private void fireDebugPrompt() {
+    public void fireDebugPromptDB() {
         androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(SettingsActivity.this).setTitle(R.string.debugPromptTitle2);
-        File[] dirFiles = new File(getBaseFolderPath(SettingsActivity.this)).listFiles();
-        List<File> files = new ArrayList<File>(Arrays.asList(dirFiles));
-        List<File> ridesAndAccEvents = new ArrayList<>();
-        sortFileListLastModified(files);
-        double sizeAllInMB = 0;
-        double size10InMB = 0;
-        int i10 = 0;
-        for (int i = 0; i < files.size(); i++) {
-            File file = files.get(i);
-            if (file.getName().contains("accGps")) {
-                int id = Integer.parseInt(file.getName().split("_")[0]);
-                String path = file.getParent() + File.separator + "accEvents" + id + ".csv";
-                File accEvents = new File(path);
-                sizeAllInMB += file.length() / 1024.0 / 1024.0;
-                ridesAndAccEvents.add(file);
-                if (accEvents.exists()) {
-                    sizeAllInMB += accEvents.length() / 1024.0 / 1024.0;
-                    ridesAndAccEvents.add(accEvents);
-                }
-                if (i10 < 10) {
-                    size10InMB = sizeAllInMB;
-                    i10++;
-                }
-            }
-        }
-        sizeAllInMB = Math.round(sizeAllInMB / 3.0 * 100.0) / 100.0;
-        size10InMB = Math.round(size10InMB / 3.0 * 100.0) / 100.0;
-        final int[] clicked = {2};
+        MetaDataEntry[] metaDataEntries = MetaData.getMetaDataEntriesLastModifies(this);
         CharSequence[] array;
-        if (files.size() > 10) {
-            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + sizeAllInMB + " MB)", getText(R.string.debugSend10Rides) + " (" + size10InMB + " MB)", getText(R.string.debugDoNotSendRides)};
-        } else {
-            array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + sizeAllInMB + " MB)", getText(R.string.debugDoNotSendRides)};
-        }
+        array = new CharSequence[]{getText(R.string.debugSendAllRides) + " (" + metaDataEntries.length + " Rides)", getText(R.string.debugDoNotSendRides)};
+        final int[] clicked = {2};
         builder.setSingleChoiceItems(array, 2, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -303,7 +269,7 @@ public class SettingsActivity extends BaseActivity {
         builder.setPositiveButton(R.string.upload, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                prepareDebugZip(clicked[0], ridesAndAccEvents, SettingsActivity.this);
+                prepareDebugZipDB(clicked[0], metaDataEntries, SettingsActivity.this);
                 Intent intent = new Intent(SettingsActivity.this, DebugUploadService.class);
                 startService(intent);
                 // delete zip.zip after upload is finished
@@ -354,7 +320,7 @@ public class SettingsActivity extends BaseActivity {
                     new ActivityResultCallback<Uri>() {
                         @Override
                         public void onActivityResult(Uri uri) {
-                            boolean successfullyExported = zipTo(SettingsActivity.this.getFilesDir().getParent(),uri,SettingsActivity.this);
+                            boolean successfullyExported = zipToDb(uri,SettingsActivity.this);
                             if (successfullyExported) {
                                 Toast.makeText(SettingsActivity.this, R.string.exportSuccessToast, Toast.LENGTH_SHORT).show();
                             } else {
@@ -367,7 +333,7 @@ public class SettingsActivity extends BaseActivity {
                     new ActivityResultCallback<Uri>() {
                         @Override
                         public void onActivityResult(Uri uri) {
-                            boolean successfullyImported = importSimRaData(uri, SettingsActivity.this);
+                            boolean successfullyImported = importSimRaDataDB(uri, SettingsActivity.this);
                             if (successfullyImported) {
                                 Toast.makeText(SettingsActivity.this, R.string.importSuccess, Toast.LENGTH_SHORT).show();
                             } else {

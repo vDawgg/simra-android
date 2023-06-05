@@ -1,6 +1,8 @@
 package de.tuberlin.mcc.simra.app.activities;
 
 
+import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
@@ -15,11 +17,9 @@ import androidx.appcompat.widget.Toolbar;
 
 import de.tuberlin.mcc.simra.app.R;
 import de.tuberlin.mcc.simra.app.databinding.ActivitySingleRideStatisticsBinding;
+import de.tuberlin.mcc.simra.app.entities.MetaData;
 import de.tuberlin.mcc.simra.app.entities.MetaDataEntry;
 import de.tuberlin.mcc.simra.app.util.SharedPref;
-
-import static de.tuberlin.mcc.simra.app.entities.MetaData.getMetaDataEntryForRide;
-import static de.tuberlin.mcc.simra.app.util.Utils.calculateCO2Savings;
 
 public class SingleRideStatisticsActivity extends AppCompatActivity {
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,14 +57,14 @@ public class SingleRideStatisticsActivity extends AppCompatActivity {
 
         backBtn = findViewById(R.id.back_button);
         backBtn.setOnClickListener(v -> finish());
-        Boolean isImperialUnit = SharedPref.Settings.DisplayUnit.isImperial(this);
+        boolean isImperialUnit = SharedPref.Settings.DisplayUnit.isImperial(this);
 
         if (!getIntent().hasExtra(EXTRA_RIDE_ID)) {
             throw new RuntimeException("Extra: " + EXTRA_RIDE_ID + " not defined.");
         }
         rideId = getIntent().getIntExtra(EXTRA_RIDE_ID, 0);
 
-        MetaDataEntry metaDataEntry = getMetaDataEntryForRide(rideId, SingleRideStatisticsActivity.this);
+        MetaDataEntry metaDataEntry = MetaData.getMetadataEntryForRide(rideId, this);
 
         int distanceDivider = 0;
         String distanceUnit = "";
